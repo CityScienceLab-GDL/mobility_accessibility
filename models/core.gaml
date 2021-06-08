@@ -12,7 +12,7 @@ global{
 	
 	file study_area_shp <- file("../includes/area_estudio/area_estudio.shp");
 	file bus_stops_shp <- file("../includes/paradas_transporte/paradas.shp");
-	file blocks_shp <- file("../include/paradas_transporte/manzanas.shp");
+	file blocks_shp <- file("../includes/area_estudio/manzanas.shp");
 	geometry shape <- envelope(study_area_shp);
 	
 	float  walkable_distance	parameter: "walkable distance" 	category: "Environment parameters" 	   <- 0.5#km min:0.1#km max:1#km;
