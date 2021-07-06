@@ -12,16 +12,14 @@ import "GAMABrix.gaml"
 global{
 	
 	//CityIO parameters
-	bool post_on <- true;
-	bool pull_only <- false;
-	bool send_first_batch <- false;
-	int cycle_first_batch <- 10; 
+	bool post_on <- false;
+	bool pull_only <- true;
 	
-	float step <- 1#h;
+	float step <- 1#minute;
 	file study_area_shp <- file("../includes/area_estudio/area_estudio.shp");
 	file bus_stops_shp <- file("../includes/paradas_transporte/paradas.shp");
 	file blocks_shp <- file("../includes/area_estudio/manzanas.shp");
-	string city_io_table<-"udg_dcu";
+	string city_io_table<-"ccu_udg";
 	geometry shape <- envelope(setup_cityio_world());
 	//geometry shape <- envelope(study_area_shp);
 	
@@ -32,7 +30,8 @@ global{
 		create study_area from:study_area_shp with:[id::int(read("fid")),ha::float(read("ha"))];
 		create bus_stop from:bus_stops_shp with:[classification::string(read("Clasificac")),routes::string(read("Rutas_que_")),municipality::string(read("Municipio"))];
 		create block from: blocks_shp;
-		//create average_accessibility;
+		//create average_accessibility with:(viz_type:"bar", indicator_name:"Public ", indicator_name:"Transportation");
+		create people number:40;
 	}
 }
 
@@ -63,7 +62,7 @@ species block{
 	}
 }
 
-grid heatmap width:world.shape.width/50 height:world.shape.height/50 parent:cityio_agent{
+grid heatmap width:world.shape.width/50 height:world.shape.height/50 parent:cityio_agent frequency:10 parallel:true{
 	
 	//CityScope indicator parameters
 	bool is_heatmap<-true;
@@ -95,8 +94,18 @@ species average_accessibility parent: cityio_agent {
     reflex update_numeric {
     	list values <- heatmap collect (each.accessibility_value);
         numeric_values<-[];
-        //numeric_values<+indicator_name::0.3;//mean(values);
+        numeric_values<+indicator_name::0.3;//mean(values);
     }
+}
+
+species people parent:cityio_agent skills:[moving]{
+	bool is_visible <- true;
+	reflex move{
+		do wander;
+	}
+	aspect default{
+		draw circle(30) color:#yellow;
+	}
 }
 
 
@@ -107,6 +116,7 @@ experiment GUI type:gui{
 			species block aspect:default refresh:false;
 			species bus_stop aspect:default;
 			species heatmap aspect:default;
+			species people aspect:default;
 		}
 	}
 }
