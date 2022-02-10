@@ -12,7 +12,7 @@ global{
 	string denue_filename <- "../includes/shp/denue_2021a.shp";
 	string entry_points_filename <- "../includes/shp/entry_points.shp";
 	string dcu_limits_filename <- "../includes/shp/poligono_dcu.shp";
-	string dcu_blocks_filename <- "../includes/shp/dcu_manzanas_inegi_2020.shp";
+	string inegi_blocks_filename <- "../includes/shp/dcu_manzanas_inegi_2020.shp";
 	string ppdu_blocks_filemane <- "../includes/shp/ppdu_dcu_2012.shp";
 	string dcu_roads_filename <- "../includes/shp/roads_dcu.shp";
 	string dcu_osm_roads_filename <- "../includes/shp/red_vial_osm_dcu.shp";
@@ -22,7 +22,8 @@ global{
 	string dcu_blocks_residencial_filename <- "../includes/shp/dcu_manzanas_inegi_2020_residencial.shp";
 	string dcu_students_filename <- "../includes/shp/students.shp";
 	string zonification_ccu_filename <- "../includes/shp/zonificacion_pm_ccu_v1.shp";
-	
+	string hex_zones_filename <- "../includes/shp/idu_hex_dcu.shp";
+	string cityscope_shape_filename <- "../includes/shp/poligono_1_1000/poligono_mesa_dcu.shp";
 	//map<string,float> mobility_speed <- ["pedestrian"::1.4,"bicycle"::3.0,"bus"::4.1,"car"::5.0];
 	map<string,rgb> use_type_color <- ["Espacios verdes abiertos y recreativos"::#seagreen,
 																	"Alojamiento temporal"::#yellow,
@@ -36,13 +37,14 @@ global{
 																	"Servicios a la industria y al comercio"::#slateblue,
 																	"Equipamiento"::#dodgerblue,
 																	"Recreación y descanso"::#limegreen,
-																	"Instalaciones especiales e infraestructura"::#gray];
+																	"Instalaciones especiales e infraestructura"::#gray,
+																	"Vialidad"::#gray
+																	];
 		map<string,rgb> use_type_color_zonification <- ["Espacio verde"::#seagreen,
 																	"Alojamiento temporal"::rgb (255, 0, 255,255),
 																	"Habitacional"::#yellow,
 																	"Habitacional, Servicios a la industria y al comercio"::#yellow,
 																	"Comercial y de servicios"::rgb (228, 58, 63,255),
-																	"Servicios"::rgb (228, 58, 63,255),
 																	"Comercial"::rgb (228, 58, 63,255),
 																	"Servicios"::rgb (228, 58, 63,255),
 																	"Mixto"::rgb (159, 0, 0,255),
@@ -121,6 +123,9 @@ global{
 	];
 	float students_percentage <- 0.28;
 	float workers_percentage <- 0.45;
-	
+	float max_diversity <- 2.5;
+	float max_transport_accessibility <- 1.0;
+	float max_hab_emp_ratio <- 20.0;
+	float max_density <- 20.0;
 	
 }

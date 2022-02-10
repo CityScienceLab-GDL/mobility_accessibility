@@ -1,369 +1,384 @@
 /**
-* Name: core
-*  
-* Author: Gamaliel Palomo
+* Name: cityscope
+* Based on the internal empty template. 
+* Author: gamaa
 * Tags: 
 */
 
+//TODO: Cada agente llega al punto exacto DENUE, hacer que lleguen a algún lugar dentro del block.
 
-model core
+model cityscope
 import "constants.gaml"
 
 global{
-	file study_area_shp <- file("../includes/area_estudio/area_estudio.shp");
-	file bus_stops_shp <- file("../includes/paradas_transporte/paradas.shp");
-	file blocks_shp <- file("../includes/area_estudio/manzanas.shp");
-	file denue_shp <- file("../includes/denue/denue_ae_2021_05.shp");
-	file ppdu_shp <- file("../includes/area_estudio/ppdu.shp");
-	file parks_shp <- file("../includes/area_estudio/parks_osm.shp");
-	geometry shape <- envelope(study_area_shp);
 	
-	list block_indicators <- ["poblacion","numero de viviendas","viviendas habitadas","viviendas deshabitadas", "viviendas con electricidad","viviendas sin electricidad", "viviendas con internet","acceso a la movilidad","densidad","poblacion primaria"];
-	list<float> output_values <- [1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0];
+	file limits_shp <- file(dcu_limits_filename);
+	file roads_shp <- file(dcu_roads_filename);
+	file denue_shp <- file(denue_filename);
+	file blocks_shp <- file(ppdu_blocks_filemane);
+	file entry_points_shp <- file(entry_points_filename);
+	file transport_shp <- file(dcu_transport);
+	file massive_shp <- file(dcu_massive_transport_filename);
+	file cycling_shp <- file(dcu_cycling_way_filename);
+	file students_shp <- file(dcu_students_filename);
+	file zonification_shp <- file(zonification_ccu_filename);
+	file hex_zones_shp <- file(hex_zones_filename);
+	file cityscope_shp <- file(cityscope_shape_filename);
 	
-	//Indices
+	geometry shape <- envelope(limits_shp);
+	graph road_network;
+	list<denue> schools;
+	map<string,int> mobility_count;
+	map<string,path> agent_routes;
+	bool show_accessibility_by_agent parameter:"Accesibilidad por persona" <- false;
+	bool show_use parameter:"Uso de suelo" <- false;
+	bool show_entropy parameter:"Diversidad" <- false;
+	string scenario parameter:"Escenario" <- "a" among:["a","b"];
+	//bool use_percentage parameter:"Población a partir de porcentaje" <- false;
+	string case_study <- "students";
+	//Diversity
+	float max_entropy_a<-0.0;
+	float max_entropy_b<-0.0;
+	bool scenario_changed <- false;
+	string last_scenario <- scenario;
 	
-	
-	
-	float  walkable_distance	parameter: "walkable distance" 	category: "Environment parameters" 	   <- 0.5#km min:0.1#km max:1#km;
-	string  block_indicator	parameter: "Indicator" 	category: "Indicator" 	   <- "poblacion" among:["poblacion","numero de viviendas","viviendas habitadas","viviendas deshabitadas", "viviendas con electricidad","viviendas sin electricidad","viviendas con internet","acceso a la movilidad","densidad","poblacion primaria"];
-	bool  show_indicator parameter: "show current indicator" 	category: "Environment parameters" 	   <- false;
-	bool  show_denue parameter: "show denue" 	category: "Environment parameters" 	   <- true;
-	bool  show_bus_stops parameter: "show bus stops" 	category: "Environment parameters" 	   <- false;
-	bool  show_population parameter: "show population" 	category: "Environment parameters" 	   <- false;
-	bool  show_ppdu parameter: "show ppdu" 	category: "Environment parameters" 	   <- false;
-	bool  show_parks parameter: "show parks" 	category: "Environment parameters" 	   <- true;
-	bool  show_mobility_heatmap parameter: "show mobility accessibility" 	category: "Environment parameters" 	   <- false;
-	
-	map<string,int> blocks_max_values;
-	float max_mobility_value <- 0.0;
-	
-	//PPDU
-	float ppdu_transparency parameter:"PPDU transparency" category: "Visualization" <- 0.2 min:0.0 max:1.0;
+	//Scenario indicators
+	float diversity <- 0.0;
+	float transport_accessibility <- 0.0;
+	float hab_emp_ratio <- 0.0;
+	float density <- 0.0;
 	
 	init{
-		create school from:denue_shp with:[
-			unique_name::string(read("nom_estab")),
-			id::string(read("id")),
-			activity_type::string(read("codigo_act")),
-			nb_employees::int(read("per_ocu"))
-		]{
-			if not (activity_type in denue_activites){
-				do die;
+		step <-5#seconds;
+		starting_date <- date("2022-2-3 06:00:00");
+		create roads from:roads_shp;
+		road_network <- as_edge_graph(roads);
+		create dcu from: limits_shp;
+		create transport_station from:transport_shp;
+		create massive_transport from:massive_shp with:[type::string(read("Sistema"))];
+		create cycling_way from:cycling_shp;
+		create block from:blocks_shp with:[id::string(read("fid")),use::string(read("Descripci2")),area::float(read("Area"))];
+		create denue from:denue_shp with:[id::string(read("id")),activity_code::string(read("codigo_act"))]{
+			my_block <- first(block closest_to self);
+		}
+		schools <- denue where(each.activity_code in universities);
+		loop i from:0 to:length(mobility_colors.keys)-1{
+			add mobility_colors.keys[i]::0 to:mobility_count;
+		}
+		create block from:zonification_shp with:[id::string(read("id")),use::string(read("Uso")),parking::int(read("CAJ_ESTAC")),area::float(read("Area"))]{
+			from_scenario <- "b";
+			if id = "NULL"{do die;}
+			if parking = nil {do die;}
+			create people number:parking/10{
+				from_scenario <- "b";
+				activity_type <- "student";//one_of(["student","worker"]);
+				location <- any_location_in(myself);
+				home <- location;
+				home_block <- myself;
+				if home_block = nil{
+					home_block <- block closest_to self;
+				}
+				mobility_mode <- one_of(student_mobility_percentages.keys);//"Automóvil propio";
+				
+				my_activity <- activity_type="student"?one_of(schools):one_of(denue);
+				mobility_count[mobility_mode] <- mobility_count[mobility_mode] + 1;
 			}
 		}
-		create study_area from:study_area_shp;
-		create bus_stop from:bus_stops_shp with:[routes::string(read("Rutas_que_")),municipality::string(read("Municipio")),class::string(read("Clasificac"))];
-		create ppdu from:ppdu_shp with:[
-			fid::string(read("fid")),
-			Distrito::string(read("Distrito")),
-			SubDistrit::string(read("SubDistrit")),
-			Clave_de_c::string(read("Clave_de_C")),
-			Descripcion::string(read("Descripci0")),
-			Clave_del_::string(read("Clave_del_")),
-			Descripci1::string(read("Descripci1")),
-			Descripci2::string(read("Descripci2")),
-			Fecha_de_P::string(read("Fecha_de_P"))
-		];
-		create block from:blocks_shp with:[
-			id::string(read("CVEGEO")),
-			population::int(read("POBTOT")),
-			nb_0to2::int(read("P_0A2")),
-			nb_3to5::int(read("P_3A5")),
-			nb_6to11::int(read("P_6A11")),
-			nb_12to14::int(read("P_12A14")),
-			nb_15to17::int(read("P_15A17")),
-			nb_18to24::int(read("P_18A24")),
-			nb_65_and_more::int(read("POB65_MAS")),
-			
-			nb_houses::int(read("TVIVPAR")),
-			nb_occuped_houses::int(read("TVIVPARHAB")),
-			nb_unoccuped_houses::int(read("VIVPAR_DES ")),
-			nb_houses_with_electricity::int(read("VPH_C_ELEC")),
-			nb_houses_without_electricity::int(read("VPH_S_ELEC")),
-			nb_houses_with_internet::int(read("VPH_INTER")),
-			nb_people_elementary::int(read("P_6A11"))
-		];
-		ask ppdu{
-			do die;
+		
+		ask schools{
+			ask block{
+				path the_path <- path_between(road_network,self,myself);
+				add string(myself.id)::the_path to:route_to;
+			}
 		}
-		create park from:parks_shp with:[
-			type::string(read("fclass")),
-			park_name::string(read("name"))
-		];
-		ppdu_shp <- [];
+		create people from:students_shp with:[my_activity_id::string(read("school")),home_block_id::string(read("home_block")),mobility_mode::string(read("mobility_m"))]{
+			activity_type <- "student";
+			home <- location;
+			my_activity <- first(denue where(each.id = my_activity_id));
+			home_block <- block closest_to self;
+			if my_activity = nil {
+				write "nil school";
+			}
+			mobility_count[mobility_mode] <- mobility_count[mobility_mode] + 1;
+		}
+
+		float sum <- 0.0;
+		ask people{
+			if from_scenario = "a"{home_block.nb_people_a <- home_block.nb_people_a + 1;}
+			else if from_scenario = "b"{home_block.nb_people_b <- home_block.nb_people_b + 1;}
+			transport_station the_station <- transport_station closest_to self;
+			float distance1 <- the_station distance_to self;
+			sum <- sum + distance1;
+			massive_transport closest_brt <- massive_transport where(each.type="BRT (Bus Rapid Transit)") closest_to self;
+			float distance2 <- closest_brt distance_to self;
+			massive_transport closest_light_train <- massive_transport where(each.type="Tren Eléctrico") closest_to self;
+			float distance3 <- closest_light_train distance_to self;
+			cycling_way closest_cycling_way <- cycling_way closest_to self;
+			float distance4 <- closest_cycling_way distance_to self;
+			if distance1 < 300{
+				transport_accessibilty_count <- transport_accessibilty_count + 1;
+			} 
+			if distance2 < 500{
+				transport_accessibilty_count <- transport_accessibilty_count + 1;
+			}
+			if distance3 < 800{
+				transport_accessibilty_count <- transport_accessibilty_count + 1;
+			}
+			if distance4 < 300{
+				transport_accessibilty_count <- transport_accessibilty_count + 1;
+			}
+			
+		}
+		create entry_points from:entry_points_shp;
+		create hex_zone from:hex_zones_shp with:[diversity_index_a::float(read("IDU"))]{
+			diversity_index <- diversity_index_a;
+		}
+		max_entropy_a <- max(hex_zone collect(each.diversity_index_a));
+		max_entropy_b <- max(hex_zone collect(each.diversity_index_b));
+		create cityscope_shape from:cityscope_shp;
 		blocks_shp <- [];
-		bus_stops_shp <- [];
+		roads_shp <- [];
 		denue_shp <- [];
-		parks_shp <- [];
-		study_area_shp <- [];
-		
-		loop i over:block_indicators{
-			blocks_max_values[i] <- max(block collect(each.indicators[i]));
-		}
-		//ask mobility_heatmap{do filter_cells;}
-		
+		entry_points_shp <- [];
+		transport_shp <- [];
+		students_shp <- [];
+		zonification_shp <- [];
+		hex_zones_shp <- [];
+		cityscope_shp <- [];
 	}
-	
-	reflex update_output{
-		max_mobility_value <- max((mobility_heatmap where(dead(each) = false)) collect(each.accessibility_value));
-		output_values[0] <- mean(block collect(each.indicators["poblacion"]/blocks_max_values["poblacion"]));
-		output_values[1] <- blocks_max_values["numero de viviendas"]>0?mean(block collect(each.indicators["numero de viviendas"]/blocks_max_values["numero de viviendas"])):0;
-		 
-		output_values[2] <- blocks_max_values["viviendas habitadas"]>0?mean(block collect(each.indicators["viviendas habitadas"]/blocks_max_values["viviendas habitadas"])):0;
-		output_values[3] <- blocks_max_values["viviendas deshabitadas"]>0?mean(block collect(each.indicators["viviendas deshabitadas"]/blocks_max_values["viviendas deshabitadas"])):0; 
-		output_values[4] <- blocks_max_values["viviendas con electricidad"]>0?mean(block collect(each.indicators["viviendas con electricidad"]/blocks_max_values["viviendas con electricidad"])):0;
-		output_values[5] <- blocks_max_values["viviendas sin electricidad"]>0?mean(block collect(each.indicators["viviendas sin electricidad"]/blocks_max_values["viviendas sin electricidad"])):0;
-		output_values[6] <- blocks_max_values["viviendas con internet"]>0?mean(block collect(each.indicators["viviendas con internet"]/blocks_max_values["viviendas con internet"])):0;
-		output_values[7] <- max_mobility_value>0 ? mean((mobility_heatmap where(dead(each) = false)) collect(each.accessibility_value/max_mobility_value)) : 0;
-		//output_values[7] <- mean((mobility_heatmap where(dead(each) = false)) collect(each.accessibility_value));
-		output_values[8] <- blocks_max_values["densidad"]>0?mean(block collect(each.indicators["densidad"]/blocks_max_values["densidad"])):0;
-		
-	}
-	
-}
-
-grid mobility_heatmap width:world.shape.width/50 height:world.shape.height/50 frequency:10 parallel:true{
-	
-	list<mobility_heatmap> active_cells; 
-	/*action filter_cells{
-		block closest_block <- block closest_to self.location;
-		//active_cells <- mobility_heatmap where(each.shape overlaps closest_block);
-		if not (self.shape overlaps closest_block.shape ){
-			do die;
+	reflex check_changes{
+		if scenario !=last_scenario{
+			scenario_changed <- true;
+			last_scenario <- scenario;
 		}
-	}*/
-	
-	float accessibility_value <- 0.0;
-	reflex update_values when:every(2#cycle){
-		using topology(world){
-			
-			bus_stop closest_stop <- bus_stop closest_to self;
-			float distance <- closest_stop distance_to self;
-			accessibility_value <- distance>=walkable_distance?0.0:(walkable_distance-distance)/walkable_distance;
-			
-			//float accessibility_intermodal <- tipos_transporte/walkable_distance;
+		else{
+			scenario_changed <- false;
 		}
 	}
-	aspect default{
-		if show_mobility_heatmap{
-			rgb cell_color;
-			cell_color <- rgb(50,50,100,0.9*accessibility_value);
-			draw shape color:cell_color empty:false;
-		}
+	reflex update_scenario_indicators when:cycle=0 or scenario_changed{
+		transport_accessibility <- scenario="a"?sum(people where(each.from_scenario="a") collect(each.ind_mobility_accessibility))/length(people):sum(people collect(each.ind_mobility_accessibility))/length(people);
+		transport_accessibility <- transport_accessibility/max_transport_accessibility;
+		diversity <- sum(hex_zone collect(each.diversity_index))/length(hex_zone);
+		diversity <- diversity / max_diversity;
+		hab_emp_ratio <- scenario ="a"?length(people where(each.from_scenario="a"))/length(denue):length(people)/length(denue);
+		hab_emp_ratio <- hab_emp_ratio/max_hab_emp_ratio;
+		density <- scenario="a"? sum(block where(each.from_scenario="a") collect(each.my_density))/length(block where(each.from_scenario="a")): sum(block collect(each.my_density))/length(block);
+		density <- density/max_density;
 	}
 }
-
-species bus_stop{
-	string routes;
-	string municipality;
-	string class;
-	aspect default{
-		if show_bus_stops{
-			draw circle(20) color:#yellow;
-		}
-		
-	}
-}
-
-species denue{
-	string unique_name;
-	string id;
-	string activity_type;
-	int nb_employees;
-	aspect default{
-		if show_denue{
-			draw circle(30) color:rgb(100,100,100,0.6);
-		}
-	}
-}
-
-species school parent:denue{
-	int capacity;
-	image_file my_icon;
-	init{
-		 my_icon <- image_file("../includes/img/school.png");
-	}
-	
-	aspect default{
-		if show_denue{
-			draw circle(60)	 color:rgb(50,50,90,0.8);
-		}
-	}
-}
-
-species road{
-}
-
-species block{
-	string id;
-	map<string,int> indicators;
-	list<int> indicators_list;
-	
-	//Población
-	int population;
-	int nb_0to2;
-	int nb_3to5;
-	int nb_6to11;
-	int nb_12to14;
-	int nb_15to17;
-	int nb_18to24;
-	int nb_65_and_more;
-	
-	//Condición de las casas
-	int nb_houses;
-	int nb_occuped_houses;
-	int nb_unoccuped_houses;
-	int nb_houses_with_electricity;
-	int nb_houses_without_electricity;
-	int nb_houses_with_internet;
-	int nb_people_elementary;
-	float value;
-	
-	//Values for population analysis
-	float pupulation_density;
-	
-	//Education accessibility variables
-	denue closest_school;
-	
-	//Values from ppdu
-	string fid;
-	string Distrito;
-	string SubDistrit;
-	string Clave_de_c;
-	string Descripcion;
-	string Clave_del_;
-	string Descripci1;
-	string Descripci2;
-	string Fecha_de_P;
-	rgb ppdu_color;
-	
-	init{
-		indicators["poblacion"] <- population;
-		indicators["numero de viviendas"] <- nb_houses;
-		indicators["viviendas habitadas"] <- nb_occuped_houses;
-		indicators["viviendas deshabitadas"] <- nb_unoccuped_houses;
-		indicators["viviendas con electricidad"] <- nb_houses_with_electricity;
-		indicators["viviendas sin electricidad"] <- nb_houses_without_electricity;
-		indicators["viviendas con internet"] <- nb_houses_with_internet;
-		indicators["densidad"] <- indicators["poblacion"]/shape.area#m;
-		closest_school <- (denue at_distance(walkable_distance)) closest_to self;
-		/*create people number:nb_people_elementary{
-			location <- any_location_in(myself);
-		}*/
-		ppdu closest_ppdu <- ppdu closest_to(self);
-		fid <- closest_ppdu.fid;
-		Distrito <- closest_ppdu.Distrito;
-		SubDistrit <- closest_ppdu.SubDistrit;
-		Clave_de_c <- closest_ppdu.Clave_de_c;
-		Descripcion <- closest_ppdu.Descripcion;
-		Clave_del_ <- closest_ppdu.Clave_del_;
-		Descripci1 <- closest_ppdu.Descripci1;
-		Descripci2 <- closest_ppdu.Descripci2;
-		Fecha_de_P <- closest_ppdu.Fecha_de_P;
-	}
-	
-	reflex update_education_accessibility when:show_denue{
-		closest_school <- (denue at_distance(walkable_distance)) closest_to self;
-	}
-	
-	aspect default{
-		
-		if show_ppdu{
-			if Descripci2 = "Actividades Silvestres"{
-				ppdu_color <- rgb (82, 163, 163,ppdu_transparency);
-			}
-			else if Descripci2 = "Comercial y de servicios" or Descripci2 = "Comercial y de servicios, Habitacional" or Descripci2 = "Comercio"{
-				ppdu_color <- rgb (255, 128, 0,ppdu_transparency);
-			}
-			else if Descripci2 = "Equipamiento"{
-				ppdu_color <- rgb (0, 0, 232,ppdu_transparency);
-			}
-			else if Descripci2 = "Espacios verdes abiertos y recreativos"{
-				ppdu_color <- rgb (89, 160, 46,ppdu_transparency);
-			}
-			else if Descripci2 = "Forestal"{
-				ppdu_color <- rgb (183, 235, 165,ppdu_transparency);
-			}
-			else if Descripci2 = "Habitacional"{
-				ppdu_color <- rgb (231, 246, 184,ppdu_transparency);
-			}
-			else if Descripci2 = "Habitacional, Servicios"{
-				ppdu_color <- rgb (231, 246, 184,ppdu_transparency);
-			}
-			else if Descripci2 = "Industrial"{
-				ppdu_color <- rgb (138, 73, 199,ppdu_transparency);
-			}
-			else if Descripci2 = "Instalaciones especiales e infraestructura"{
-				ppdu_color <- rgb (107, 107, 107,ppdu_transparency);
-			}
-			else if Descripci2 = "Mixto"{
-				ppdu_color <- rgb (205, 20, 23,ppdu_transparency);
-			}
-			else if Descripci2 = "Servicios a la industria y al comercio"{
-				ppdu_color <- rgb (229, 146, 50,ppdu_transparency);
-			}
-			else if Descripci2 = "Sin Información"{
-				ppdu_color <- rgb (0, 0, 0,ppdu_transparency);
-			}
-			draw shape color:ppdu_color;
-		}
-		if show_indicator{
-			value <- indicators[block_indicator]/blocks_max_values[block_indicator];
-			draw shape color:rgb(100,100,100,1.0*value);
-			if show_denue and not (closest_school = nil){
-				draw curve(self.location,closest_school.location,0.0) color:rgb(50,60,50,1.0);
-			}
-		}
-	}
-	
-}
-
-species study_area{
+species cityscope_shape{
 	aspect default{
 		draw shape color:#white empty:true;
 	}
 }
-
-species ppdu{
-	string fid;
-	string Distrito;
-	string SubDistrit;
-	string Clave_de_c;
-	string Descripcion;
-	string Clave_del_;
-	string Descripci1;
-	string Descripci2;
-	string Fecha_de_P;
+species hex_zone{
+	float diversity_index_a <- 0.0;
+	float diversity_index_b <- 0.0;
+	float diversity_index <- 0.0;
+	float area;
+	list<block> my_blocks;
+	init{
+		area <- shape.area;
+		my_blocks <- block at_distance(200#m);
+		map<string,int> count_map;
+		loop key over:use_type_color.keys{
+			add key::0 to:count_map;
+		}
+		ask my_blocks{
+			count_map[self.use] <- count_map[self.use] + 1;
+		}
+		float sum<-0.0;
+		loop i over:count_map.keys{
+			float pi <- count_map[i]/length(my_blocks);
+			if pi != 0{
+				sum <- sum + (pi*ln(pi));
+			}
+		}
+		sum <- -1*sum;
+		diversity_index_b <- sum;
+		
+	}
+	reflex update_diversity_index when:scenario_changed{
+		if scenario = "a"{
+			diversity_index <- diversity_index_a;
+		}
+		else if scenario = "b"{
+			diversity_index <- diversity_index_b;
+		}
+	}
+	aspect default{
+		float max_entropy <- scenario = "a"?max_entropy_a:max_entropy_b;
+		if show_entropy{
+			draw shape color:rgb (46, 194, 194,diversity_index/max_entropy);
+		}
+	}
 }
-
-species park{
+species cycling_way{
+	
+}
+species transport_station{
+	image_file my_icon <- image_file("../includes/img/bus.png") ;
+	aspect default{
+		draw my_icon size:40;
+	}
+}
+species massive_transport{
 	string type;
-	string park_name;
-	rgb park_color;
+}
+species entry_points{
 	aspect default{
-		if show_parks{
-			if type = "park"{
-				park_color <- rgb (64, 170, 72,255);
+		draw circle(10) color:#red;
+	}
+}
+species denue{
+	string id;
+	string activity_code;
+	block my_block;
+	aspect default{
+		draw triangle(10) color:rgb (44, 177, 201,0.5);
+	}
+}
+species people skills:[moving] parallel:true{
+	point home;
+	string home_block_id;
+	string activity_type;
+	denue my_activity;
+	string my_activity_id;
+	map<date,string> agenda_day;
+	//Mobility
+	float ind_mobility_accessibility <- 0.0;
+	string mobility_mode;
+	int transport_accessibilty_count <- 0;
+	string current_activity;
+	block home_block;
+	int point_index;
+	list<point>  my_route;
+	bool new_one <- false;
+	string from_scenario <- "a";
+	reflex update_indicators{
+		ind_mobility_accessibility <- transport_accessibilty_count /4;
+	}
+	reflex update_agenda when: empty(agenda_day) or (every(#day) and (!(from_scenario="b") or ((from_scenario="b") and scenario="b"))){
+		agenda_day <- [];
+		point the_activity_location <- my_activity.location;
+		int activity_time <- rnd(2,12);
+		int init_hour <- rnd(6,12);
+		int init_minute <- rnd(0,59);
+		date activity_date <- date(current_date.year,current_date.month,current_date.day,init_hour,init_minute,0);
+		agenda_day <+ (activity_date::"activity");
+		activity_date <- activity_date + activity_time#hours;
+		init_minute <- rnd(0,59);
+		activity_date <- activity_date + init_minute#minutes;
+		agenda_day <+ (activity_date::"home");
+	}
+	reflex update_activity when:not empty(agenda_day) and (after(agenda_day.keys[0])) and (!(from_scenario="b") or ((from_scenario="b") and scenario="b")){
+		current_activity <-agenda_day.values[0];
+		if current_activity = "activity"{
+			my_route <- home_block.route_to[my_activity.id].shape.points;
+		}
+		else{
+			my_route <- home_block.route_to[my_activity.id].shape.points;
+			list<point> reverse;
+			loop i from:0 to:length(my_route)-1{
+				add my_route[length(my_route)-1-i] to: reverse;
 			}
-			else if type = "forest"{
-				park_color <- rgb (219, 223, 66,255);
+			my_route <- reverse;
+		}
+		point_index <- 0;
+		agenda_day>>first(agenda_day);
+	}
+	reflex movement when:point_index<length(my_route) and (!(from_scenario="b") or ((from_scenario="b") and scenario="b")){
+		do goto target:my_route[point_index] speed:mobility_speed[mobility_mode]#km/#h;
+		if location = my_route[point_index]{
+			point_index<- point_index + 1;
+		}
+	}
+	string select_mobility_mode{
+		float sum <- 0.0;
+		float selection <- rnd(100)/100;
+		loop mode over:activity_type="student"?student_mobility_percentages.keys:worker_mobility_percentages.keys{
+			if selection < student_mobility_percentages[mode] + sum{
+				return mode;
 			}
-			draw shape color:park_color;
+			sum <- sum + student_mobility_percentages[mode];
+		}
+		return one_of(student_mobility_percentages.keys);
+	}
+	aspect mobility_accessibility{
+		if show_accessibility_by_agent{
+			
+			rgb my_color <- rgb((1-ind_mobility_accessibility)*255,ind_mobility_accessibility*255,100);
+			if ((from_scenario="b") and (scenario="b")) or !(from_scenario="b"){
+				draw circle(5) color:my_color;
+			}
+		}
+		else{
+			if ((from_scenario="b") and (scenario="b")) or !(from_scenario="b"){
+				draw circle(5) color:mobility_colors[mobility_mode];
+			}
+		}		
+	}
+}
+
+species dcu{
+	aspect default{
+		draw shape color:#blue empty:true;
+	} 
+}
+
+species block{
+	string id;
+	string from_scenario <- "a";
+	string use;
+	int parking <- 0;
+	map<string,path> route_to;
+	int nb_people <- 0;
+	int nb_people_a <- 0;
+	int nb_people_b <- 0;
+	int nb_workers;
+	float area;
+	float my_density <- 0.0;
+	
+	rgb my_color <- rgb(0,0,0,0.3);
+	
+	aspect default{
+		if not show_use{
+			draw shape color:my_color border:#white;
+		}
+	}
+	aspect only_border{
+		draw shape empty:true border:#white;
+	}
+	reflex update_density_index when:scenario_changed{
+		if scenario = "a"{
+			my_density <- nb_people_a / (area*0.0001);
+		}
+		else if scenario = "b"{
+			my_density <- (nb_people_a+nb_people_b)/(area*0.0001);
+		}
+	}
+	aspect use_type{
+		if show_use{
+			if scenario = "a"{
+				my_color <- use in use_type_color.keys?use_type_color[use]:rgb(0,0,0,0);
+				my_color <- rgb(my_color.red,my_color.green,my_color.blue,0.6);
+				draw shape color:from_scenario="a"?my_color:rgb(0,0,0,0) border:#gray;
+			}
+			else if scenario = "b"{
+				my_color <- use in use_type_color.keys?use_type_color[use]:rgb(0,0,0,0);
+				my_color <- rgb(my_color.red,my_color.green,my_color.blue,0.6);
+				draw shape color:my_color border:#gray;
+			}
+		}
+		else{
+			draw shape color:rgb(100,100,100,0.2);
 		}
 	}
 }
 
-species people skills:[moving]{
+species roads{
 	aspect default{
-		if show_population{
-			draw circle(8) color:rgb(50,50,100,0.6);
-		}
+		draw shape color:#gray;
 	}
 }
-species building{
-	
-}
-species vehicle skills:[moving]{
-	
-}
+
