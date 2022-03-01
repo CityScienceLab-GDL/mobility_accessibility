@@ -24,6 +24,10 @@ global{
 	file zonification_shp <- file(zonification_ccu_filename);
 	file hex_zones_shp <- file(hex_zones_filename);
 	file cityscope_shp <- file(cityscope_shape_filename);
+	file facilities_schools_shp <- file(facilities_schools_filename);
+	file facilities_health_shp <- file(facilities_health_filename);
+	file facilities_culture_shp <- file(facilities_culture_filename);
+	
 	
 	geometry shape <- envelope(limits_shp);
 	graph road_network;
@@ -43,10 +47,16 @@ global{
 	string last_scenario <- scenario;
 	
 	//Scenario indicators
+	list<float> scenario_a <- [0.0,0.0,0.0,0.0,0.0,0.0,0.0];
+	list<float> scenario_b <- [0.0,0.0,0.0,0.0,0.0,0.0,0.0];
 	float diversity <- 0.0;
 	float transport_accessibility <- 0.0;
 	float hab_emp_ratio <- 0.0;
 	float density <- 0.0;
+	float education_accessibility <- 0.0;
+	float culture_accessibility <- 0.0;
+	float health_accessibility <- 0.0;
+	float inc <- 1.5;
 	
 	init{
 		step <-5#seconds;
@@ -55,6 +65,9 @@ global{
 		road_network <- as_edge_graph(roads);
 		create dcu from: limits_shp;
 		create transport_station from:transport_shp;
+		create facilities from:facilities_schools_shp with:[type::"school"];
+		create facilities from:facilities_culture_shp with:[type::"culture"];
+		create facilities from:facilities_health_shp with:[type::"health"];
 		create massive_transport from:massive_shp with:[type::string(read("Sistema"))];
 		create cycling_way from:cycling_shp;
 		create block from:blocks_shp with:[id::string(read("fid")),use::string(read("Descripci2")),area::float(read("Area"))];
@@ -127,7 +140,9 @@ global{
 			if distance4 < 300{
 				transport_accessibilty_count <- transport_accessibilty_count + 1;
 			}
-			
+			nb_schools_near2me <- length(schools at_distance(500));
+			nb_hospitals_near2me <- length(facilities where(each.type="health") at_distance(1000));
+			nb_culture_near2me <- length(facilities where(each.type="culture") at_distance(1000));			
 		}
 		create entry_points from:entry_points_shp;
 		create hex_zone from:hex_zones_shp with:[diversity_index_a::float(read("IDU"))]{
@@ -146,6 +161,9 @@ global{
 		hex_zones_shp <- [];
 		cityscope_shp <- [];
 	}
+	reflex update_inc when:(cycle=5){
+		inc <- 0.1;
+	}
 	reflex check_changes{
 		if scenario !=last_scenario{
 			scenario_changed <- true;
@@ -155,8 +173,35 @@ global{
 			scenario_changed <- false;
 		}
 	}
+	reflex update_radar when:cycle=10{
+		transport_accessibility <- sum(people where(each.from_scenario="a") collect(each.ind_mobility_accessibility))/length(people where(each.from_scenario="a"));
+		transport_accessibility <- transport_accessibility/max_transport_accessibility;
+		diversity <- sum(hex_zone collect(each.diversity_index_a))/length(hex_zone);
+		diversity <- diversity / max_diversity;
+		hab_emp_ratio <- length(people where(each.from_scenario="a"))/length(denue);
+		hab_emp_ratio <- hab_emp_ratio/max_hab_emp_ratio;
+		density <- sum(block where(each.from_scenario="a") collect(each.my_density))/length(block where(each.from_scenario="a"));
+		density <- density/max_density;
+		education_accessibility <- sum(people where(each.from_scenario="a") collect(each.ind_education_accessibility))/length(people where(each.from_scenario="a"));
+		culture_accessibility <- sum(people where(each.from_scenario="a") collect(each.ind_culture_accessibility))/length(people where(each.from_scenario="a"));
+		health_accessibility <- sum(people where(each.from_scenario="a") collect(each.ind_health_accessibility))/length(people where(each.from_scenario="a"));
+		scenario_a <- [transport_accessibility,education_accessibility,diversity,hab_emp_ratio,density,health_accessibility,culture_accessibility];
+		
+		transport_accessibility <- sum(people collect(each.ind_mobility_accessibility))/length(people);
+		transport_accessibility <- transport_accessibility/max_transport_accessibility;
+		diversity <- sum(hex_zone collect(each.diversity_index_b))/length(hex_zone);
+		diversity <- diversity / max_diversity;
+		hab_emp_ratio <- length(people)/length(denue);
+		hab_emp_ratio <- hab_emp_ratio/max_hab_emp_ratio;
+		density <- sum(block collect(each.my_density))/length(block);
+		density <- density/max_density;
+		education_accessibility <- sum(people collect(each.ind_education_accessibility))/length(people);
+		culture_accessibility <- sum(people collect(each.ind_culture_accessibility))/length(people);
+		health_accessibility <- sum(people collect(each.ind_health_accessibility))/length(people);
+		scenario_b <- [transport_accessibility,education_accessibility,diversity,hab_emp_ratio,density,health_accessibility,culture_accessibility];
+	}
 	reflex update_scenario_indicators when:cycle=0 or scenario_changed{
-		transport_accessibility <- scenario="a"?sum(people where(each.from_scenario="a") collect(each.ind_mobility_accessibility))/length(people):sum(people collect(each.ind_mobility_accessibility))/length(people);
+		transport_accessibility <- scenario="a"?sum(people where(each.from_scenario="a") collect(each.ind_mobility_accessibility))/length(people where(each.from_scenario="a")):sum(people collect(each.ind_mobility_accessibility))/length(people);
 		transport_accessibility <- transport_accessibility/max_transport_accessibility;
 		diversity <- sum(hex_zone collect(each.diversity_index))/length(hex_zone);
 		diversity <- diversity / max_diversity;
@@ -164,7 +209,19 @@ global{
 		hab_emp_ratio <- hab_emp_ratio/max_hab_emp_ratio;
 		density <- scenario="a"? sum(block where(each.from_scenario="a") collect(each.my_density))/length(block where(each.from_scenario="a")): sum(block collect(each.my_density))/length(block);
 		density <- density/max_density;
+		education_accessibility <- scenario="a"?sum(people where(each.from_scenario="a") collect(each.ind_education_accessibility))/length(people where(each.from_scenario="a")):sum(people collect(each.ind_education_accessibility))/length(people);
+		culture_accessibility <- scenario="a"?sum(people where(each.from_scenario="a") collect(each.ind_culture_accessibility))/length(people where(each.from_scenario="a")):sum(people collect(each.ind_culture_accessibility))/length(people);
+		health_accessibility <- scenario="a"?sum(people where(each.from_scenario="a") collect(each.ind_health_accessibility))/length(people where(each.from_scenario="a")):sum(people collect(each.ind_health_accessibility))/length(people);
 	}
+}
+species facilities{
+	string type;
+	aspect default{
+		draw square(20) color:#mediumturquoise;
+	}
+}
+species school{
+	string id;//
 }
 species cityscope_shape{
 	aspect default{
@@ -255,8 +312,21 @@ species people skills:[moving] parallel:true{
 	list<point>  my_route;
 	bool new_one <- false;
 	string from_scenario <- "a";
-	reflex update_indicators{
+	//Education accessibility
+	int nb_schools_near2me <- 0;
+	float ind_education_accessibility <- 0.0;
+	//Health accessibility
+	int nb_hospitals_near2me <- 0;
+	float ind_health_accessibility <- 0.0;
+	//Culture accessibility
+	int nb_culture_near2me <- 0;
+	float ind_culture_accessibility <- 0.0;
+	
+	reflex update_indicators when:cycle=1{
 		ind_mobility_accessibility <- transport_accessibilty_count /4;
+		ind_education_accessibility <- nb_schools_near2me / max_schools_near; 
+		ind_health_accessibility <- nb_hospitals_near2me / max_hospitals_near;
+		ind_culture_accessibility <- nb_culture_near2me / max_culture_near;
 	}
 	reflex update_agenda when: empty(agenda_day) or (every(#day) and (!(from_scenario="b") or ((from_scenario="b") and scenario="b"))){
 		agenda_day <- [];

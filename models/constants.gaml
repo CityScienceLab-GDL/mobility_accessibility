@@ -24,6 +24,9 @@ global{
 	string zonification_ccu_filename <- "../includes/shp/zonificacion_pm_ccu_v1.shp";
 	string hex_zones_filename <- "../includes/shp/idu_hex_dcu.shp";
 	string cityscope_shape_filename <- "../includes/shp/poligono_1_1000/poligono_mesa_dcu.shp";
+	string facilities_culture_filename <- "../includes/shp/equipamiento/cultura.shp";
+	string facilities_health_filename <- "../includes/shp/equipamiento/salud.shp";
+	string facilities_schools_filename <- "../includes/shp/equipamiento/escuelas.shp";
 	//map<string,float> mobility_speed <- ["pedestrian"::1.4,"bicycle"::3.0,"bus"::4.1,"car"::5.0];
 	map<string,rgb> use_type_color <- ["Espacios verdes abiertos y recreativos"::#seagreen,
 																	"Alojamiento temporal"::#yellow,
@@ -127,5 +130,8 @@ global{
 	float max_transport_accessibility <- 1.0;
 	float max_hab_emp_ratio <- 20.0;
 	float max_density <- 20.0;
+	int max_schools_near <- 4;
+	int max_hospitals_near <-4;
+	int max_culture_near <- 10;
 	
 }
