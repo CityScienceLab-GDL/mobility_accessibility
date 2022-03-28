@@ -27,7 +27,7 @@ global{
 	file facilities_schools_shp <- file(facilities_schools_filename);
 	file facilities_health_shp <- file(facilities_health_filename);
 	file facilities_culture_shp <- file(facilities_culture_filename);
-	
+	file facilities_green_shp <- file(facilities_greenarea_filename);
 	
 	geometry shape <- envelope(limits_shp);
 	graph road_network;
@@ -59,8 +59,8 @@ global{
 	float inc <- 1.5;
 	
 	init{
-		step <-5#seconds;
-		starting_date <- date("2022-2-3 06:00:00");
+		step <-3#seconds;
+		starting_date <- date("2022-3-7 06:00:00");
 		create roads from:roads_shp;
 		road_network <- as_edge_graph(roads);
 		create dcu from: limits_shp;
@@ -68,9 +68,10 @@ global{
 		create facilities from:facilities_schools_shp with:[type::"school"];
 		create facilities from:facilities_culture_shp with:[type::"culture"];
 		create facilities from:facilities_health_shp with:[type::"health"];
+		create facilities from:facilities_green_shp with:[type::"green"];
 		create massive_transport from:massive_shp with:[type::string(read("Sistema"))];
 		create cycling_way from:cycling_shp;
-		create block from:blocks_shp with:[id::string(read("fid")),use::string(read("Descripci2")),area::float(read("Area"))];
+		create block from:blocks_shp with:[id::string(read("fid")),use::string(read("Descripci2")),area::float(read("Area"))]{	area <- area=0.0?1.0:area;	}
 		create denue from:denue_shp with:[id::string(read("id")),activity_code::string(read("codigo_act"))]{
 			my_block <- first(block closest_to self);
 		}
@@ -78,24 +79,28 @@ global{
 		loop i from:0 to:length(mobility_colors.keys)-1{
 			add mobility_colors.keys[i]::0 to:mobility_count;
 		}
-		create block from:zonification_shp with:[id::string(read("id")),use::string(read("Uso")),parking::int(read("CAJ_ESTAC")),area::float(read("Area"))]{
+		create block from:zonification_shp with:[id::string(read("fid")),use::string(read("Uso_1")),nb_people::int(read("POB_VIV")),area::float(read("SUP_E2"))]{
+			area <- area=0.0?1.0:area;	
 			from_scenario <- "b";
 			if id = "NULL"{do die;}
 			if parking = nil {do die;}
-			create people number:parking/10{
-				from_scenario <- "b";
-				activity_type <- "student";//one_of(["student","worker"]);
-				location <- any_location_in(myself);
-				home <- location;
-				home_block <- myself;
-				if home_block = nil{
-					home_block <- block closest_to self;
+			if use = "Mixto"{
+				create people number:nb_people{
+					from_scenario <- "b";
+					activity_type <- "student";//one_of(["student","worker"]);
+					location <- any_location_in(myself);
+					home <- location;
+					home_block <- myself;
+					if home_block = nil{
+						home_block <- block closest_to self;
+					}
+					mobility_mode <- one_of(student_mobility_percentages.keys);//"Automóvil propio";
+					
+					my_activity <- activity_type="student"?one_of(schools):one_of(denue);
+					mobility_count[mobility_mode] <- mobility_count[mobility_mode] + 1;
 				}
-				mobility_mode <- one_of(student_mobility_percentages.keys);//"Automóvil propio";
-				
-				my_activity <- activity_type="student"?one_of(schools):one_of(denue);
-				mobility_count[mobility_mode] <- mobility_count[mobility_mode] + 1;
 			}
+			
 		}
 		
 		ask schools{
@@ -160,6 +165,11 @@ global{
 		zonification_shp <- [];
 		hex_zones_shp <- [];
 		cityscope_shp <- [];
+		facilities_health_shp <- [];
+		facilities_culture_shp <- [];
+		facilities_health_shp <- [];
+		facilities_schools_shp <- [];
+		facilities_green_shp <- [];
 	}
 	reflex update_inc when:(cycle=5){
 		inc <- 0.1;

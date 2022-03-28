@@ -21,12 +21,14 @@ global{
 	string dcu_cycling_way_filename <- "../includes/shp/ciclovias_dcu.shp";
 	string dcu_blocks_residencial_filename <- "../includes/shp/dcu_manzanas_inegi_2020_residencial.shp";
 	string dcu_students_filename <- "../includes/shp/students.shp";
-	string zonification_ccu_filename <- "../includes/shp/zonificacion_pm_ccu_v1.shp";
+	//string zonification_ccu_filename <- "../includes/shp/zonificacion_pm_ccu_v1.shp";
+	string zonification_ccu_filename <- "../includes/shp/zonificacion_pm_ccu_v6.shp";
 	string hex_zones_filename <- "../includes/shp/idu_hex_dcu.shp";
 	string cityscope_shape_filename <- "../includes/shp/poligono_1_1000/poligono_mesa_dcu.shp";
 	string facilities_culture_filename <- "../includes/shp/equipamiento/cultura.shp";
 	string facilities_health_filename <- "../includes/shp/equipamiento/salud.shp";
 	string facilities_schools_filename <- "../includes/shp/equipamiento/escuelas.shp";
+	string facilities_greenarea_filename <- "../includes/shp/equipamiento/dcu_eespacio_verde_equipamiento_deportivo.shp";
 	//map<string,float> mobility_speed <- ["pedestrian"::1.4,"bicycle"::3.0,"bus"::4.1,"car"::5.0];
 	map<string,rgb> use_type_color <- ["Espacios verdes abiertos y recreativos"::#seagreen,
 																	"Alojamiento temporal"::#yellow,
