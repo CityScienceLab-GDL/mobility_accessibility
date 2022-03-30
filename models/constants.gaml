@@ -22,7 +22,7 @@ global{
 	//string dcu_roads_filename <- "../includes/shp/roads_dcu.shp";
 	
 	string dcu_osm_roads_filename <- "../includes/shp/red_vial_osm_dcu.shp";
-	string dcu_transport <- "../includes/shp/paradas_transporte_publico_dcu.shp";
+	string dcu_transport_filename <- "../includes/shp/paradas_transporte_publico_dcu.shp";
 	string dcu_massive_transport_filename <- "../includes/shp/estaciones_transporte_masivo_dcu.shp";
 	string dcu_cycling_way_filename <- "../includes/shp/ciclovias_dcu.shp";
 	string dcu_blocks_residencial_filename <- "../includes/shp/dcu_manzanas_inegi_2020_residencial.shp";
