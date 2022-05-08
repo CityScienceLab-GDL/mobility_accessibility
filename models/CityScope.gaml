@@ -22,6 +22,7 @@ global{
 	file ccu_transport_shp <- file(main_shp_path+"environment/paradas_transporte_publico_dcu.shp");
 	file ccu_massive_transport_shp <- file(main_shp_path+"environment/estaciones_transporte_masivo_dcu.shp");
 	file cycling_ways_shp <- file(dcu_cycling_way_filename);
+	file intervention_areas_shp <- file(main_shp_path+intervention_areas_filename);
 	
 	//Scenario 1
 	file s1_roads_shp 				<- file(main_shp_path+"scenario1/roads.shp");
@@ -44,6 +45,10 @@ global{
 	graph roads_network;
 	map<string,path> paths;
 	map roads_weight;
+	
+	//Visualization variables
+	bool show_satellite <- false parameter:"Satellite" category:"Visualization";
+	bool show_intervention_areas <- false parameter:"Intervention areas" category:"Visualization";
 	
 	//Heatmap  variables
 	bool show_heatmap <- false;
@@ -93,7 +98,7 @@ global{
 	init{
 		
 		//Simulation specific variables
-		step 					<- 1#seconds;
+		step 					<- 2#seconds;
 		starting_date 	<- date("2022-5-17 06:00:00");
 		
 		
@@ -108,7 +113,7 @@ global{
 		//-----------   Create environment agents from scenario A
 		create roads from:s1_roads_shp with:[from_scenario::"A"];
 		create blocks from:s1_blocks_shp with:[from_scenario::"A",nb_people::int(read("POB1")),block_area::float(read("shape_area"))]{
-			create people number:int(nb_people/15) with:[home_block::self,target_block::one_of(blocks-self)]{
+			create people number:int(nb_people/10) with:[home_block::self,target_block::one_of(blocks-self)]{
 				from_scenario <- "A";
 				location <- any_location_in(home_block);
 			}
@@ -118,7 +123,7 @@ global{
 		
 		//-----------   Create environment agents from scenario B
 		create blocks from:s2_blocks_shp with:[from_scenario::"B",nb_people::int(read("POB1")),block_area::float(read("shape_area"))]{
-			create people number:int(nb_people/15) with:[home_block::self,target_block::one_of(blocks-self)]{
+			create people number:int(nb_people/10) with:[home_block::self,target_block::one_of(blocks-self)]{
 				from_scenario <- "B";
 				location <- any_location_in(home_block);
 			}
@@ -161,6 +166,9 @@ global{
 		//Create satellital image
 		create satellite_background from:dcu_satellite_shp;
 		
+		//Create intervention areas
+		create intervention_area from:intervention_areas_shp;
+		
 		//Clean memory
 		ccu_limit_shp 				<- [];
 		s1_roads_shp 				<- [];
@@ -174,6 +182,7 @@ global{
 		ccu_massive_transport_shp <- [];
 		dcu_satellite_shp 		<- [];
 		cycling_ways_shp 		<- [];
+		intervention_areas_shp 	<- [];
 		
 		education_facilities 	<- equipment where(each.type="Educación");
 		culture_facilities 		<- equipment where(each.type="Cultura");
@@ -688,6 +697,17 @@ species blocks{
 		//draw shape wireframe:false color:valid?#green:#red;// border:#blue;
 	}
 }
+
+//This species represents the polygons that are going to be changed through the physical interface
+species intervention_area{
+	string letter;
+	aspect default{
+		if show_intervention_areas{
+			draw shape color:#green border:#red width:5.0;
+		}
+	}
+}
+
 species roads{
 	string from_scenario;
 	aspect default{
@@ -702,7 +722,10 @@ species satellite_background{
 		satellite <- image_file("../includes/img/satellite_v2_bh.png");
 	}
 	aspect default{
-		draw shape border:#red texture:satellite;
+		if show_satellite{
+			draw shape border:#red texture:satellite;
+		}
+		
 	}
 }
 
@@ -811,7 +834,7 @@ species grid_paths{
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment CCU_1_1000 type:gui{
 	output{
-		display gui fullscreen:1 type:opengl background:#black axes:false{
+		display gui fullscreen:0 type:opengl background:#black axes:false{
 			 //BEST CALIBRATED CAMERAS
 			
 			// camera 'default' location: {1482.4217,1625.375,1913.8429} target: {1482.8714,1623.9457,0.0}; //ROTADA WORKING FIRST LIMITS
@@ -837,6 +860,7 @@ experiment CCU_1_1000 type:gui{
 			species satellite_background aspect:default refresh:true;
 			species ccu_limit aspect:default refresh:true;
 			species blocks aspect:default;
+			species intervention_area aspect:default;
 			species people aspect:default;
 			species heatmap aspect:heat;
 			

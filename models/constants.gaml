@@ -16,14 +16,13 @@ global{
 	string entry_points_filename <- "../includes/shp/entry_points.shp";
 	string dcu_limits_filename <- "../includes/shp/environment/scenario_limits.shp";
 	string inegi_blocks_filename <- "../includes/shp/dcu_manzanas_inegi_2020.shp";
-	
-	
-	//string dcu_roads_filename <- "../includes/shp/roads_dcu.shp";
-	
 	string dcu_transport_filename <- "../includes/shp/paradas_transporte_publico_dcu.shp";
 	string dcu_massive_transport_filename <- "../includes/shp/estaciones_transporte_masivo_dcu.shp";
 	string dcu_cycling_way_filename <- "../includes/shp/environment/ciclovias_dcu.shp";
 	string satellite_file <- "../includes/img/ccu_satellite.png";
+	string intervention_areas_filename  <- "environment/intervention_areas.shp";
+	
+	
 	//map<string,float> mobility_speed <- ["pedestrian"::1.4,"bicycle"::3.0,"bus"::4.1,"car"::5.0];
 	map<string,rgb> use_type_color <- ["Espacios verdes abiertos y recreativos"::#seagreen,
 																	"Alojamiento temporal"::#yellow,
