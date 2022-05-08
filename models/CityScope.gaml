@@ -15,12 +15,13 @@ global{
 	//Shape files
 	
 	//Environmental shapes
-	file new_limits_shp <- file(new_limits_filename);
+	//file new_limits_shp <- file(dcu_limits_filename);
 	file dcu_limit_shp <- file(dcu_limits_filename);
-	file dcu_satellite_shp <- file(main_shp_path+"envolvente_mesa_imagen_satelital.shp");
-	file ccu_limit_shp <- file(main_shp_path+"poligono_1_1000/poligono_mesa_dcu.shp");
-	file ccu_transport_shp <- file(main_shp_path+"paradas_transporte_publico_dcu.shp");
-	file ccu_massive_transport_shp <- file(main_shp_path+"estaciones_transporte_masivo_dcu.shp");
+	file dcu_satellite_shp <- file(main_shp_path+"environment/envolvente_mesa_imagen_satelital.shp");
+	file ccu_limit_shp <- file(main_shp_path+"environment/scenario_limits.shp");
+	file ccu_transport_shp <- file(main_shp_path+"environment/paradas_transporte_publico_dcu.shp");
+	file ccu_massive_transport_shp <- file(main_shp_path+"environment/estaciones_transporte_masivo_dcu.shp");
+	file cycling_ways_shp <- file(dcu_cycling_way_filename);
 	
 	//Scenario 1
 	file s1_roads_shp 				<- file(main_shp_path+"scenario1/roads.shp");
@@ -35,7 +36,7 @@ global{
 	
 	//Simulation parameters
 	//geometry shape <- envelope(dcu_limit_shp);
-	geometry shape <- envelope(new_limits_shp);
+	geometry shape <- envelope(dcu_limit_shp);
 	string scenario <- "A";
 	
 	
@@ -58,6 +59,7 @@ global{
 	
 	//Indicators variables that are going to be sent to the dashboard
 	bool allow_export_data <- true;
+	bool write_log <- false;
 	//All this indicators are initialized to 0 at each of the 3 scenarios.
 	//DIVERSITY
 	list<float> dash_day_activities_diversity 				<- [0.0,0.0,0.0];
@@ -92,14 +94,16 @@ global{
 		
 		//Simulation specific variables
 		step 					<- 5#seconds;
-		starting_date 	<- date("2022-3-23 06:00:00");
+		starting_date 	<- date("2022-5-17 06:00:00");
 		
 		
 		//Create environment agents
 		//create ccu_limit from:ccu_limit_shp;
-		create ccu_limit from: new_limits_shp;
+		create ccu_limit from: dcu_limit_shp;
 		create transport_station from: ccu_transport_shp with:[type::"bus"];
 		create transport_station from: ccu_massive_transport_shp with:[type::"massive",subtype::string(read("Sistema"))];
+		create cycling_way from:cycling_ways_shp;
+		
 		
 		//-----------   Create environment agents from scenario A
 		create roads from:s1_roads_shp with:[from_scenario::"A"];
@@ -169,6 +173,7 @@ global{
 		ccu_transport_shp 		<- [];
 		ccu_massive_transport_shp <- [];
 		dcu_satellite_shp 		<- [];
+		cycling_ways_shp 		<- [];
 		
 		education_facilities 	<- equipment where(each.type="Educación");
 		culture_facilities 		<- equipment where(each.type="Cultura");
@@ -218,6 +223,8 @@ global{
 		 dash_night_activities_diversity[1] <- mean(div_grid where(each.from_scenario="B") collect(each.night_diversity));
 		 dash_knowledge_activities_diversity[0] <- mean(div_grid where(each.from_scenario="A") collect(each.knowledge_diversity));
 		 dash_knowledge_activities_diversity[1] <- mean(div_grid where(each.from_scenario="B") collect(each.knowledge_diversity));
+		 
+		 
 		//2. FUNCIONALIDAD
 		 /*
 		dash_hab_net_density;OK
@@ -237,7 +244,6 @@ global{
 		dash_km_ways_per_km2;
 		*/
 		
-		
 		dash_hab_net_density[0] <- sum(blocks where(each.from_scenario="A") collect(each.nb_people)) / sum(blocks where(each.from_scenario="A") collect(each.block_area));
 		dash_hab_net_density[1] <- sum(blocks where(each.from_scenario="B") collect(each.nb_people)) / sum(blocks where(each.from_scenario="B") collect(each.block_area));
 		dash_public_transport_coverage[0] <- length(people where(each.from_scenario ="A" and each.ind_public_transport_coverage))/length(people where(each.from_scenario="A"));
@@ -251,21 +257,23 @@ global{
 		 */
 		
 		
+		if (write_log){
+			write "--------------------------- DASHBOARD VALUES------------------------------";
+			write "DIVERSIDAD";
+			write "Diversidad de actividades diurnas: "+dash_day_activities_diversity;
+			write "Diversidad de actividades nocturnas: "+dash_night_activities_diversity;	
+			write "Diversidad de actividades densas en conocimiento: "+dash_knowledge_activities_diversity;
+			
+			write "FUNCIONALIDAD";
+			write "Densidad neta de habitantes: "+dash_hab_net_density;
+			write "Proximidad a espacios públicos abiertos: "+dash_public_spaces_proximity;
+			write "Proximidad a equipamientos educativos: "+dash_educational_equipment_proximity;
+			write "Proximidad a equipamientos culturales: "+dash_cultural_equipment_proximity;
+			write "Proximidad a equipamientos de salud: "+dash_health_equipment_proximity;
+			write "Proximidad a transporte alternativo: "+ dash_public_transport_coverage;
+			write "";
+		}
 		
-		write "--------------------------- DASHBOARD VALUES------------------------------";
-		write "DIVERSIDAD";
-		write "Diversidad de actividades diurnas: "+dash_day_activities_diversity;
-		write "Diversidad de actividades nocturnas: "+dash_night_activities_diversity;	
-		write "Diversidad de actividades densas en conocimiento: "+dash_knowledge_activities_diversity;
-		
-		write "FUNCIONALIDAD";
-		write "Densidad neta de habitantes: "+dash_hab_net_density;
-		write "Proximidad a espacios públicos abiertos: "+dash_public_spaces_proximity;
-		write "Proximidad a equipamientos educativos: "+dash_educational_equipment_proximity;
-		write "Proximidad a equipamientos culturales: "+dash_cultural_equipment_proximity;
-		write "Proximidad a equipamientos de salud: "+dash_health_equipment_proximity;
-		write "Proximidad a transporte alternativo: "+ dash_public_transport_coverage;
-		write "";
 	}
 	//This reflex is for saving simulation data in order to be exported to the dashboard
 	reflex export_data when:allow_export_data and every(5#cycle){
@@ -800,11 +808,10 @@ species grid_paths{
 }
 
 
-
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment mesa_1a1000 type:gui{
 	output{
-		display gui fullscreen:0 type:opengl background:#black axes:false{
+		display gui fullscreen:1 type:opengl background:#black axes:false{
 			 //BEST CALIBRATED CAMERAS
 			
 			// camera 'default' location: {1482.4217,1625.375,1913.8429} target: {1482.8714,1623.9457,0.0}; //ROTADA WORKING FIRST LIMITS

@@ -10,7 +10,7 @@ model Calibrator
 import "constants.gaml"
 
 global{
-	file margins_shp <- file(cityscope_shape_filename);
+	file margins_shp <- file(main_shp_path+"environment/scenario_limits.shp");
 	file blocks_shp <- file(main_shp_path+"scenario1/poligonos.shp");
 	geometry shape <- envelope(margins_shp);
 	float delta <- 0.01;

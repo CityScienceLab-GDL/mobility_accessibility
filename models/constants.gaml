@@ -14,28 +14,15 @@ global{
 	
 	string denue_filename <- "../includes/shp/denue_2021a.shp";
 	string entry_points_filename <- "../includes/shp/entry_points.shp";
-	string dcu_limits_filename <- "../includes/shp/poligono_dcu.shp";
+	string dcu_limits_filename <- "../includes/shp/environment/scenario_limits.shp";
 	string inegi_blocks_filename <- "../includes/shp/dcu_manzanas_inegi_2020.shp";
-	string ppdu_blocks_filemane <- "../includes/shp/ppdu_dcu_2012.shp";
-	string new_limits_filename <- "../includes/shp/poligono_1_1000/mesa_dcu_v1.shp";
 	
 	
 	//string dcu_roads_filename <- "../includes/shp/roads_dcu.shp";
 	
-	string dcu_osm_roads_filename <- "../includes/shp/red_vial_osm_dcu.shp";
 	string dcu_transport_filename <- "../includes/shp/paradas_transporte_publico_dcu.shp";
 	string dcu_massive_transport_filename <- "../includes/shp/estaciones_transporte_masivo_dcu.shp";
-	string dcu_cycling_way_filename <- "../includes/shp/ciclovias_dcu.shp";
-	string dcu_blocks_residencial_filename <- "../includes/shp/dcu_manzanas_inegi_2020_residencial.shp";
-	string dcu_students_filename <- "../includes/shp/students.shp";
-	//string zonification_ccu_filename <- "../includes/shp/zonificacion_pm_ccu_v1.shp";
-	string zonification_ccu_filename <- "../includes/shp/zonificacion_pm_ccu_v6.shp";
-	string hex_zones_filename <- "../includes/shp/idu_hex_dcu.shp";
-	string cityscope_shape_filename <- "../includes/shp/poligono_1_1000/mesa_dcu_v1.shp";
-	string facilities_culture_filename <- "../includes/shp/equipamiento/cultura.shp";
-	string facilities_health_filename <- "../includes/shp/equipamiento/salud.shp";
-	string facilities_schools_filename <- "../includes/shp/equipamiento/escuelas.shp";
-	string facilities_greenarea_filename <- "../includes/shp/equipamiento/dcu_eespacio_verde_equipamiento_deportivo.shp";
+	string dcu_cycling_way_filename <- "../includes/shp/environment/ciclovias_dcu.shp";
 	string satellite_file <- "../includes/img/ccu_satellite.png";
 	//map<string,float> mobility_speed <- ["pedestrian"::1.4,"bicycle"::3.0,"bus"::4.1,"car"::5.0];
 	map<string,rgb> use_type_color <- ["Espacios verdes abiertos y recreativos"::#seagreen,
