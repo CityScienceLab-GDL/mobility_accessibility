@@ -93,7 +93,7 @@ global{
 	init{
 		
 		//Simulation specific variables
-		step 					<- 5#seconds;
+		step 					<- 1#seconds;
 		starting_date 	<- date("2022-5-17 06:00:00");
 		
 		
@@ -781,7 +781,7 @@ species people skills:[moving]{
 	
 	//This reflex controls the action of moving from point A to B
 	reflex moving when:from_scenario = scenario{
-		do goto target:target_point on:roads_network speed:0.01;
+		do goto target:target_point on:roads_network speed:0.1;
 		//do follow path:roads_path;
 	}
 	
@@ -809,7 +809,7 @@ species grid_paths{
 
 
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
-experiment mesa_1a1000 type:gui{
+experiment CCU_1_1000 type:gui{
 	output{
 		display gui fullscreen:1 type:opengl background:#black axes:false{
 			 //BEST CALIBRATED CAMERAS
