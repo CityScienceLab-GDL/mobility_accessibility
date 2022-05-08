@@ -780,8 +780,8 @@ species people skills:[moving]{
 	}
 	
 	//This reflex controls the action of moving from point A to B
-	reflex moving{
-		do goto target:target_point on:roads_network speed:0.1;
+	reflex moving when:from_scenario = scenario{
+		do goto target:target_point on:roads_network speed:0.01;
 		//do follow path:roads_path;
 	}
 	
