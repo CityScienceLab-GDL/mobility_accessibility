@@ -24,6 +24,11 @@ global{
 	file cycling_ways_shp <- file(dcu_cycling_way_filename);
 	file intervention_areas_shp <- file(main_shp_path+intervention_areas_filename);
 	
+	//Shapes for people flows in case of a cultural event
+	file events_roads_shp <- file(events_roads_filename);
+	file events_entry_points_shp <- file(events_entry_points_filename);
+	file events_location_points_shp <- file(events_locations_filename);
+	
 	//Scenario 1
 	file s1_roads_shp 				<- file(main_shp_path+"scenario1/roads.shp");
 	file s1_blocks_shp 				<- file(main_shp_path+"scenario1/blocks.shp");
@@ -43,7 +48,9 @@ global{
 	
 	//Path  variables
 	graph roads_network;
+	graph event_roads_network;
 	map<string,path> paths;
+	map event_roads_weight;
 	map roads_weight;
 	
 	//Visualization variables
@@ -63,7 +70,7 @@ global{
 	list<diversity_grid> div_grid;
 	
 	//Indicators variables that are going to be sent to the dashboard
-	bool allow_export_data <- true;
+	bool allow_export_data <- false;
 	bool write_log <- false;
 	//All this indicators are initialized to 0 at each of the 3 scenarios.
 	//DIVERSITY
@@ -130,6 +137,14 @@ global{
 		}
 		create diversity_grid from:s2_grid_shp with:[night_diversity::float(read("ID_NOCHE")),day_diversity::float(read("ID_DIA")),knowledge_diversity::float(read("ID_CONOCIM")),from_scenario::"B"];
 		
+		//------------ Create environment agents from scenario Event
+		create roads from:events_roads_shp with:[from_scenario::"event"];
+		event_roads_weight <- roads where(each.from_scenario="event") as_map (each::each.shape.perimeter);
+		//event_roads_network <- as_edge_graph(roads where(each.from_scenario="event")); 
+		event_roads_network <- roads where(each.from_scenario="event") as_intersection_graph 1.0 with_weights event_roads_weight;
+		create entry_point from:events_entry_points_shp with:[rate::int(read("porcentaje"))];
+		create event_location from:events_location_points_shp with:[capacity::int(read("avg_asiste"))];
+		
 		//This is to init individual indicators of people
 		ask people{
 			
@@ -160,8 +175,8 @@ global{
 		
 		
 		//Create road network
-		roads_weight <- roads as_map (each:: each.shape.perimeter);
-		roads_network <- roads as_intersection_graph 1.0 with_weights roads_weight;
+		roads_weight <- roads where(each.from_scenario="A") as_map (each:: each.shape.perimeter);
+		roads_network <- roads where(each.from_scenario="A") as_intersection_graph 1.0 with_weights roads_weight;
 		
 		//Create satellital image
 		create satellite_background from:dcu_satellite_shp;
@@ -183,6 +198,9 @@ global{
 		dcu_satellite_shp 		<- [];
 		cycling_ways_shp 		<- [];
 		intervention_areas_shp 	<- [];
+		events_roads_shp 		<- [];
+		events_entry_points_shp 		<- [];
+		events_location_points_shp <- [];
 		
 		education_facilities 	<- equipment where(each.type="Educación");
 		culture_facilities 		<- equipment where(each.type="Cultura");
@@ -204,18 +222,21 @@ global{
 		
 	}
 	
-	/*
-	 * 
-	float dash_day_activities_diversity;
-	float dash_night_activities_diversity;
-	float dash_third_activities_diversity;
-	float dash_knowledge_activities_diversity;
-	//FUNCTIONALITY
+	//This reflex is to produce cars flows for the mobility simulation
+	reflex generate_car_flows when:sum(event_location collect(each.capacity - each.current_people))>0{
+		ask entry_point{
+			 
+			if flip(self.rate/100){
+				event_location tmp_location <- first(event_location where((each.capacity-each.current_people)>0));
+				create car with:[from_scenario::"event", my_event::tmp_location, location::self.location];
+				ask tmp_location{current_people <- current_people - 1;}
+			}
+			
+		}
+	}
 	
-	//ENVIRONMENTAL IMPACT
 	
-	 * 
-	 */
+	//This reflex exports the data that is going to be read by the dashboard
 	reflex compute_export_data when:allow_export_data{
 		//Some of the values that are exported by this funcion are computed in other functions.
 		
@@ -556,6 +577,9 @@ global{
 				tmp <- heatmap[grid_x+1,grid_y-1];
 				if tmp != nil{add tmp to:my_nb;}
 				grid_value <- grid_value*spread_factor + mean(my_nb  collect(each.grid_value))*(1-spread_factor);
+				if grid_value < 0.25{grid_value <- grid_value * 1.20;}
+				else if grid_value < 0.5{grid_value <- grid_value * 1.10;}
+				else if grid_value < 0.75{grid_value <- grid_value * 1.05;}
 			}
 		}
 		
@@ -597,8 +621,11 @@ grid heatmap width:world.shape.width/15 height:world.shape.height/15{
 			//result <- rgb(4*(grid_value-0.5),result.green,0, grid_value*0.8);
 		}
 		else if(grid_value<0.85){
-			result <- rgb (250, 111, 18,255);
+			result <- rgb (248, 111, 18,255);
 			//result <- rgb(4*(grid_value-0.5),result.green,0, grid_value*0.8);
+		}
+		else if(grid_value<0.9){
+			result <- rgb (252, 105, 15,255);
 		}
 		else{
 			result <- rgb(result.red,1+3*(0.75*grid_value),0,grid_value*0.7);
@@ -608,6 +635,32 @@ grid heatmap width:world.shape.width/15 height:world.shape.height/15{
 }
 
 //------------------ SPECIES -----------------------------------------------------
+
+species car skills:[moving]{
+	string from_scenario;
+	event_location my_event;
+	reflex move_towards_event when:(from_scenario="event"){
+		if location = my_event.location{
+			do die;
+		}
+		else{
+			write name;
+			do goto target:my_event on:event_roads_network speed:0.05;
+		}
+	}
+	aspect default{
+		draw circle(5) color:#white;
+	}
+}
+
+//Entry points
+species entry_point{
+	float rate <- 0.0;
+}
+species event_location{
+	int capacity;
+	int current_people <- 0;
+}
 
 //Species related to transportation
 species transport_station{
@@ -742,6 +795,9 @@ species people skills:[moving]{
 	//Variables related to scenarios
 	string from_scenario;
 	
+	//Variables related to event simulation scenario
+	event_location my_event;
+	
 	//Related to mobility
 	blocks home_block;
 	blocks target_block;
@@ -781,6 +837,8 @@ species people skills:[moving]{
 			add my_path[length(my_path)-1-i] to:new_path;
 		}
 	}
+	
+	
 	
 	//This reflex controls the agent's activities to do during the day
 	reflex update_agenda when: (every(#day)) {
@@ -862,6 +920,7 @@ experiment CCU_1_1000 type:gui{
 			species blocks aspect:default;
 			species intervention_area aspect:default;
 			species people aspect:default;
+			species car aspect:default;
 			species heatmap aspect:heat;
 			
 			//Keyboard events
