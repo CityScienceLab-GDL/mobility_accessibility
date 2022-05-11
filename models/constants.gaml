@@ -23,6 +23,11 @@ global{
 	string intervention_areas_filename  <- "environment/intervention_areas.shp";
 	
 	
+	//List of files that are used to simulate the people flows in the case of cultural events
+	string events_roads_filename <- main_shp_path + "events/roads.shp";
+	string events_entry_points_filename <- main_shp_path + "events/entry_points.shp";
+	string events_locations_filename <- main_shp_path + "events/event_location.shp";
+	
 	//map<string,float> mobility_speed <- ["pedestrian"::1.4,"bicycle"::3.0,"bus"::4.1,"car"::5.0];
 	map<string,rgb> use_type_color <- ["Espacios verdes abiertos y recreativos"::#seagreen,
 																	"Alojamiento temporal"::#yellow,
