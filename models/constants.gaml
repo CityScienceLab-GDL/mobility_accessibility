@@ -10,18 +10,20 @@ model constants
 
 global{
 	string main_shp_path <- "../includes/shp/";
+	string main_csv_path <- "../includes/csv/";
 		
-	
-	string denue_filename <- "../includes/shp/denue_2021a.shp";
 	string entry_points_filename <- "../includes/shp/entry_points.shp";
 	string dcu_limits_filename <- "../includes/shp/environment/scenario_limits.shp";
-	string inegi_blocks_filename <- "../includes/shp/dcu_manzanas_inegi_2020.shp";
-	string dcu_transport_filename <- "../includes/shp/paradas_transporte_publico_dcu.shp";
-	string dcu_massive_transport_filename <- "../includes/shp/estaciones_transporte_masivo_dcu.shp";
+	string dcu_transport_filename <- "environment/paradas_transporte_publico_dcu.shp";
+	string dcu_massive_transport_filename <- "environment/estaciones_transporte_masivo_dcu.shp";
 	string dcu_cycling_way_filename <- "../includes/shp/environment/ciclovias_dcu.shp";
 	string satellite_file <- "../includes/img/ccu_satellite.png";
-	string intervention_areas_filename  <- "environment/intervention_areas.shp";
 	
+	//Files related to interventions
+	string intervention_areas_filename  <- "environment/intervention_areas.shp";	
+	string economic_activities_filename <- "scenario1/economic_activities.shp";
+	string projects_filename <- "/projects.csv";
+	string allowed_activities_by_use_filename <- "/EQUIV_SCIAN_PP.csv";
 	
 	//List of files that are used to simulate the people flows in the case of cultural events
 	string events_roads_filename <- main_shp_path + "events/roads.shp";
