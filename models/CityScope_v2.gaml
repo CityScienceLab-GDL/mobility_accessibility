@@ -129,6 +129,7 @@ global{
 			create people number:int(nb_people/10) with:[home_block::self,target_block::one_of(blocks-self)]{
 				from_scenario <- "A";
 				location <- any_location_in(home_block);
+				mobility_type <- select_mobility_mode();
 			}
 		}
 		create economic_unit from:economic_activities_shp with:[from_scenario::"A",activity_id::read("codigo_act"),sub_id::read("sec_sub")];
@@ -140,6 +141,7 @@ global{
 			create people number:int(nb_people/10) with:[home_block::self,target_block::one_of(blocks-self)]{
 				from_scenario <- "B";
 				location <- any_location_in(home_block);
+				mobility_type <- select_mobility_mode();
 			}
 		}
 		create diversity_grid from:s2_grid_shp with:[night_diversity::float(read("ID_NOCHE")),day_diversity::float(read("ID_DIA")),knowledge_diversity::float(read("ID_CONOCIM")),from_scenario::"B"];
@@ -421,6 +423,14 @@ global{
 	action select_scenario_a{scenario <- "A";}
 	action select_scenario_b{scenario <- "B";}
 	
+	action heatmap2polution{
+		ask ccu_heatmap{grid_value <- 0.0;}
+		ask ccu_heatmap{
+			
+		}
+		do spread_value(spread_value);
+	}
+	
 	action heatmap2education{
 		ask ccu_heatmap{grid_value <- 0.0;}
 		
@@ -644,6 +654,7 @@ global{
 //------------------ HEATMAP CELLS ------------------------------------------
 grid heatmap width:world.shape.width/15 height:world.shape.height/15{
 	rgb my_color <- rgb(0,0,0,0);
+	float polution_value <- 0.0;
 	bool valid <- true;
 	aspect default{
 		draw shape wireframe:true border:#red;
@@ -934,9 +945,6 @@ species people skills:[moving]{
 	//Variables related to scenarios
 	string from_scenario;
 	
-	//Variables related to event simulation scenario
-	event_location my_event;
-	
 	//Related to mobility
 	blocks home_block;
 	blocks target_block;
@@ -946,7 +954,21 @@ species people skills:[moving]{
 	int point_counter <- 0;
 	string current_destinity <- "work" among:["home","work"];
 	map<date,string> agenda_day;
+	string mobility_type;
 
+
+	//This action is used to select the mobility type for this agent
+	string select_mobility_mode{
+		float sum <- 0.0;
+		float selection <- rnd(100)/100;
+		loop mode over:student_mobility_percentages.keys{
+			if selection < student_mobility_percentages[mode] + sum{
+				return mode;
+			}
+			sum <- sum + student_mobility_percentages[mode];
+		}
+		return one_of(student_mobility_percentages.keys);
+	}
 
 	//First, we obtain the path from the map
 	action init_path{
@@ -977,7 +999,10 @@ species people skills:[moving]{
 		}
 	}
 	
-	
+	action update_polution_values{
+		heatmap my_cell <- heatmap closest_to self;
+		
+	}
 	
 	//This reflex controls the agent's activities to do during the day
 	reflex update_agenda when: (every(#day)) {
@@ -1002,6 +1027,7 @@ species people skills:[moving]{
 	//This reflex controls the action of moving from point A to B
 	reflex moving when:from_scenario = scenario{
 		do goto target:target_point on:roads_network speed:0.1;
+		
 		//do follow path:roads_path;
 	}
 	
@@ -1075,6 +1101,7 @@ experiment CCU_1_1000 type:gui{
 			event n action:heatmap2nightdiv;
 			event w action:heatmap2knowdiv;
 			event m action:heatmap2mobility;
+			event p action:heatmap2polution;
 		}
 	}
 }

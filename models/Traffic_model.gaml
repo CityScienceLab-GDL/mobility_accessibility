@@ -64,7 +64,8 @@ species car skills:[advanced_driving,moving]{
 	intersection target;
 	reflex build_path when:final_target =nil{
 		using topology(world){	
-			location <- (intersection at_distance(1000) where(each.roads_out!=[]) closest_to self).location;
+			intersection int_tmp <- first(intersection at_distance(2000) where(each.roads_out!=[] closest_to self));
+			location <- int_tmp.location;
 			target <- intersection closest_to first(event_location);
 			current_path <- compute_path(graph: event_roads_network, target: target);
 			if current_path != nil {valid <- true;}
