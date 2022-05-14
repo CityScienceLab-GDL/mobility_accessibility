@@ -24,7 +24,8 @@ global skills:[network]{
 	file cycling_ways_shp <- file(dcu_cycling_way_filename);
 	file intervention_areas_shp <- file(main_shp_path+intervention_areas_filename);
 	file economic_activities_shp <- file(main_shp_path+economic_activities_filename);
-	file projects_csv <- csv_file(main_csv_path+projects_filename);
+	//file projects_csv <- csv_file(main_csv_path+projects_filename);
+	file projects_shp <- file(main_shp_path+projects_shp_filename);
 	file allowed_activities_csv <- csv_file(main_csv_path+allowed_activities_by_use_filename);
 	
 	//Shapes for people flows in case of a cultural event
@@ -141,14 +142,8 @@ global skills:[network]{
 		create diversity_grid from:s1_grid_shp with:[night_diversity::float(read("ID_NOCHE")),day_diversity::float(read("ID_DIA")),knowledge_diversity::float(read("ID_CONOCIM")),from_scenario::1];
 		
 		//-----------   Create environment agents from scenario B
-		create blocks from:s2_blocks_shp with:[from_scenario::2,nb_people::int(read("POB1")),block_area::float(read("shape_area"))]{
-			create people number:int(nb_people/10) with:[home_block::self,target_block::one_of(blocks-self)]{
-				from_scenario <- 2;
-				location <- any_location_in(home_block);
-				mobility_type <- select_mobility_mode();
-			}
-		}
-		create diversity_grid from:s2_grid_shp with:[night_diversity::float(read("ID_NOCHE")),day_diversity::float(read("ID_DIA")),knowledge_diversity::float(read("ID_CONOCIM")),from_scenario::2];
+		create blocks from:s2_blocks_shp with:[from_scenario::2,nb_people::int(read("POB1")),block_area::float(read("shape_area"))];
+		//create diversity_grid from:s2_grid_shp with:[night_diversity::float(read("ID_NOCHE")),day_diversity::float(read("ID_DIA")),knowledge_diversity::float(read("ID_CONOCIM")),from_scenario::2];
 		
 		//------------ Create environment agents from scenario Event
 		create roads from:events_roads_shp with:[from_scenario::4];
@@ -181,10 +176,10 @@ global skills:[network]{
 			
 		}
 		
-		ask diversity_grid {
+		/*ask diversity_grid {
 			list<people>my_people <- people where(each.from_scenario = self.from_scenario) inside self;
 			self.transportation_access <- mean(my_people collect(each.mobility_accessibility));
-		} 
+		} */
 		
 		
 		//Create road network
@@ -206,7 +201,7 @@ global skills:[network]{
 		//allowed_activities_by_use_filename
 		
 		//Create project agent from csv
-		data <- matrix(projects_csv);
+		/*data <- matrix(projects_csv);
 		loop i from: 0 to: data.rows -1{
 			create project with:[
 				id::data[0,i], 
@@ -222,20 +217,23 @@ global skills:[network]{
 				VIV60M::int(data[10,i]),
 				VIV80M::int(data[11,i])
 			];
-		}	
+		}	*/
+		create project from:projects_shp with:[id::read("ID_CCU"),block_id::read("ID_BLOCK"),from_scenario::2];
 		
 		//Create intervention areas
-		create intervention_area from:intervention_areas_shp with:[id::read("fid"),area_name::read("nombre"),associated_projects_str::read("ID_asociad")]{
+		create intervention_area from:intervention_areas_shp with:[id::read("fid"),area_name::read("nombre"),associated_projects_str::read("id_ccu")]{
 			//Lets associate each area to a project in the projects data base created just before
 			list<string> valid_project_ids <- project collect(each.id);
-			list<string> str_projects <- split_with(associated_projects_str,",");
-			if not empty(str_projects){
-				loop p_id over: str_projects{
-					if p_id in valid_project_ids{
-						add first(project where(each.id=p_id)) to:associated_projects;
+			write area_name+ " AP: "+associated_projects_str;
+			if associated_projects != nil{
+				list<string> str_projects <- split_with(associated_projects_str,",");
+				if not empty(str_projects){
+					loop p_id over: str_projects{
+						if p_id in valid_project_ids{add first(project where(each.id=p_id)) to:associated_projects;}
 					}
 				}
 			}
+			
 		}	
 		
 		
@@ -254,7 +252,7 @@ global skills:[network]{
 		dcu_satellite_shp 		<- [];
 		cycling_ways_shp 		<- [];
 		intervention_areas_shp 	<- [];
-		projects_csv 					<- [];
+		projects_shp 					<- [];
 		events_roads_shp 		<- [];
 		events_entry_points_shp 		<- [];
 		events_location_points_shp <- [];
@@ -266,9 +264,14 @@ global skills:[network]{
 		health_facilities 			<- equipment where(each.type="Salud");
 		sports_facilities			<- equipment where(each.type="Deporte");
 		
+		list<people>valid_people;
 		ask ccu_limit{
 			ccu_heatmap 				<- heatmap inside(self);
 			div_grid							<- diversity_grid inside(self);
+			valid_people <- people inside self;
+		}
+		ask people{
+			if not (self in valid_people){do die;}
 		}
 		
 		write "education:"+ length(education_facilities);
@@ -287,130 +290,14 @@ global skills:[network]{
 		write "Received: "+the_message.contents;
 		// A, B, I, K, L
 		string new_string <- the_message.contents;
-		list<string> letters <- split_with(new_string,"/");
-		
-		
-		
-		/*if the_message.contents = "A/1"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="A2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="A3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="A1"));
-			ask tmp_ia{do activate_area;}
+		list<string> words <-split_with(new_string,",");
+		loop w over: words{
+			list<string> letters <- split_with(new_string,"/");
+			write "Activating polygon: "+letters[0]+", scenario: "+letters[1];
+			ask intervention_area where(each.name=letters[0]){
+				do activate_scenario(int(letters[1]));
+			}
 		}
-		else if the_message.contents = "A/2"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="A1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="A3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="A2"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "A/3"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="A1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="A2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="A3"));
-			ask tmp_ia{do activate_area;}
-		}
-		if the_message.contents = "B/1"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="B2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="B3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="B1"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "B/2"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="B1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="B3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="B2"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "B/3"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="B1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="B2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="B3"));
-			ask tmp_ia{do activate_area;}
-		}
-		if the_message.contents = "I/1"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="I2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="I3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="I1"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "I/2"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="I1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="I3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="I2"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "I/3"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="I1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="I2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="I3"));
-			ask tmp_ia{do activate_area;}
-		}
-		if the_message.contents = "K/1"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="K2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="K3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="K1"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "K/2"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="K1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="K3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="K2"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "K/3"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="K1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="K2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="K3"));
-			ask tmp_ia{do activate_area;}
-		}
-		if the_message.contents = "L/1"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="L2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="L3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="L1"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "L/2"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="L1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="L3"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="L2"));
-			ask tmp_ia{do activate_area;}
-		}
-		else if the_message.contents = "L/3"{
-			intervention_area tmp_ia <- first(intervention_area where(each.area_name="L1"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="L2"));
-			ask tmp_ia{do deactivate_area;}
-			tmp_ia <- first(intervention_area where(each.area_name="L3"));
-			ask tmp_ia{do activate_area;}
-		}*/
 	}
 	
 	//This reflex is to produce cars flows for the mobility simulation
@@ -557,14 +444,14 @@ global skills:[network]{
 	
 	
 	action select_scenario_1{scenario <- 1;}
-	action select_scenario_2{scenario <- 1;}
+	action select_scenario_2{scenario <- 2;}
 	
 	action heatmap2polution{
 		ask ccu_heatmap{grid_value <- 0.0;}
 		ask ccu_heatmap{
 			
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	
 	action heatmap2education{
@@ -597,7 +484,7 @@ global skills:[network]{
 				}
 			}
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	action heatmap2culture{
 		ask ccu_heatmap{grid_value <- 0.0;}
@@ -633,7 +520,7 @@ global skills:[network]{
 				}
 			}		
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	
 	action heatmap2health{
@@ -668,7 +555,7 @@ global skills:[network]{
 				}
 			}		
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	
 	action heatmap2sports{
@@ -703,22 +590,26 @@ global skills:[network]{
 				}
 			}		
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	
 	
 	action heatmap2mobility{
 		ask ccu_heatmap{grid_value <- 0.0;}
-		ask diversity_grid where(each.from_scenario = scenario){
+		ask blocks{
+			list<people> my_people <- people where(each.home_block=self);
+			mobility_access <- mean(my_people collect(each.mobility_accessibility));
+		}
+		ask diversity_grid{
 			float value <- self.transportation_access;
 			list<blocks> my_blocks <- blocks where(each.from_scenario = scenario) overlapping self;
 			list<heatmap> the_cells;
 			ask my_blocks{
 				the_cells <- ccu_heatmap overlapping self;
-				ask the_cells{grid_value <- value;}
+				ask the_cells{grid_value <- mean(my_blocks collect(each.mobility_access));}
 			}
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	
 	//------------ HEATMAP SHOWS DIVERSITY
@@ -729,7 +620,7 @@ global skills:[network]{
 				grid_value <- myself.day_diversity;
 			}
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	
 	action heatmap2nightdiv{
@@ -739,7 +630,7 @@ global skills:[network]{
 				grid_value <- myself.night_diversity;
 			}
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	
 	action heatmap2knowdiv{
@@ -749,7 +640,7 @@ global skills:[network]{
 				grid_value <- myself.knowledge_diversity;
 			}
 		}
-		do spread_value(spread_value);
+		do spread_value(spread_value_factor);
 	}
 	
 	
@@ -840,6 +731,7 @@ grid heatmap width:world.shape.width/15 height:world.shape.height/15{
 species project{
 	
 	string id;
+	int from_scenario;
 	string block_id;
 	string project_name;
 	int population;
@@ -858,7 +750,7 @@ species project{
 		blocks my_block <-first( blocks where(each.id=block_id));
 		create people number:population returns:new_people;
 		ask new_people{
-			from_scenario <- 2;
+			from_scenario <- myself.from_scenario;
 			location <- any_location_in(my_block);
 		}
 	}
@@ -884,8 +776,8 @@ species project{
 		do create_new_activities;
 	}
 	action deactivate{
-		ask people where(each.from_scenario=2){do die;}
-		ask economic_unit where(each.from_scenario=2){do die;}
+		ask people where(each.from_scenario=from_scenario){do die;}
+		ask economic_unit where(each.from_scenario=from_scenario){do die;}
 	}
 	aspect default{
 		draw shape wireframe:true border:#white;
@@ -902,18 +794,25 @@ species economic_unit{
 }
 
 species intervention_area{
-	bool is_active;
+	int active_scenario;
 	string area_name;
 	string id;
 	string associated_projects_str;
 	list<project> associated_projects;
-	action activate_area{
-		ask associated_projects{
-			do activate;
+	action activate_scenario(int new_scenario){
+		if active_scenario != new_scenario{
+			ask associated_projects where(each.from_scenario=active_scenario){
+				do deactivate;
+			}
+			ask associated_projects where(each.from_scenario=new_scenario){
+				do activate;
+			}
+			active_scenario <- new_scenario;
 		}
-	}
-	action deactivate_area{
 		
+	}
+	aspect default{
+		draw shape wireframe:true border:#yellow;
 	}
 	aspect default{
 		draw shape wireframe:true border:#yellow;
@@ -1015,7 +914,7 @@ species blocks{
 	bool valid <- false;
 	
 	//Indicators that are computed at block level
-	
+	float mobility_access;
 	//Cultural equipment
 	int nb_different_cultural_equipment <- 0;
 	bool ind_proximity_2_cultural_equipment <- false;
@@ -1092,6 +991,25 @@ species people skills:[moving]{
 	map<date,string> agenda_day;
 	string mobility_type;
 
+	//This action is to compute mobility_accessibility
+	action compute_mobility_accessibility{
+		int transport_accessibilty_count <- 0;
+		list<float> distances <- [];
+		transport_station closest_station <- transport_station where(each.type="bus") closest_to self;
+		add closest_station distance_to self to:distances;
+		closest_station <- transport_station where(each.type="massive" and each.subtype="BRT (Bus Rapid Transit)") closest_to self;
+		add closest_station distance_to self to:distances;
+		closest_station <- transport_station where(each.type="massive" and each.subtype="Tren Eléctrico") closest_to self;
+		add closest_station distance_to self to:distances;
+		cycling_way closest_cycling_way <- cycling_way closest_to self;
+		add closest_station distance_to self to:distances;
+		if distances[0] < 300{transport_accessibilty_count <- transport_accessibilty_count + 1;} 
+		if distances[1] < 500{transport_accessibilty_count <- transport_accessibilty_count + 1;}
+		if distances[2] < 800{transport_accessibilty_count <- transport_accessibilty_count + 1;}
+		if distances[3] < 300{transport_accessibilty_count <- transport_accessibilty_count + 1;}
+		mobility_accessibility <- transport_accessibilty_count /4;
+		ind_public_transport_coverage <- transport_accessibilty_count >=3;
+	}
 
 	//This action is used to select the mobility type for this agent
 	string select_mobility_mode{

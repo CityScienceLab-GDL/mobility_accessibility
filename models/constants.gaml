@@ -22,7 +22,8 @@ global{
 	//Files related to interventions
 	string intervention_areas_filename  <- "environment/intervention_areas.shp";	
 	string economic_activities_filename <- "scenario1/economic_activities.shp";
-	string projects_filename <- "/projects.csv";
+	string projects_csv_filename <- "/projects.csv";
+	string projects_shp_filename <- "/scenario2/projects.shp";
 	string allowed_activities_by_use_filename <- "/EQUIV_SCIAN_PP.csv";
 	
 	//List of files that are used to simulate the people flows in the case of cultural events
@@ -156,7 +157,7 @@ global{
 	
 	//New version
 	
-	int spread_value <- 10;
+	int spread_value_factor <- 10;
 	float spread_factor <- 0.2;
 	map<string,int> education_distances <- ["Preescolar"::500,"Primaria"::750,"Secundaria"::1000,"Bachillerato"::5000,"Licenciatura"::10000];
 	map<string,int> culture_distances <- ["Auditorio Estatal"::10000,"Auditorio Municipal"::2340,"Biblioteca Municipal"::1500,"Casa de la Cultura"::10000,"Escuela Integral de Artes"::10000,"Museo Local"::10000,"Teatro"::10000,"Biblioteca pública estatal"::10000];
