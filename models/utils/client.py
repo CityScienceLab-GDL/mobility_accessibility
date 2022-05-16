@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 print("{}/{}".format(args.poligono, args.escenario))
 msg = "{}/{}".format(args.poligono, args.escenario)
-
+msg = "A/2,B/2,I/2,K/2,L/2"
 client= paho.Client("table_client")                           #create client object
 client.on_publish = on_publish                          #assign function to callback
 client.on_message = on_message

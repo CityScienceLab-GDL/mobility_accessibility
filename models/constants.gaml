@@ -18,6 +18,7 @@ global{
 	string dcu_massive_transport_filename <- "environment/estaciones_transporte_masivo_dcu.shp";
 	string dcu_cycling_way_filename <- "../includes/shp/environment/ciclovias_dcu.shp";
 	string satellite_file <- "../includes/img/ccu_satellite.png";
+	string green_areas_file <- "/environment/green_areas.shp";
 	
 	//Files related to interventions
 	string intervention_areas_filename  <- "environment/intervention_areas.shp";	
@@ -128,8 +129,10 @@ global{
 		"Automóvil propio"::16.3,
 		"Otro"::5.0
 	];
-	
-	
+	map<string,float> energy_requirement_map<-["Económica"::769.41,"Media"::3130.58,"Residencial"::3730.58];
+	map<string,float> waste_generation_map<-["Económica"::0.755,"Media"::1.005,"Residencial"::1.106];
+	map<string,float> water_requirement_map<-["Económica"::251.0,"Media"::535.0,"Residencial"::689.0];
+	list<float> roads_km <- [87.954];
 	float students_percentage <- 0.28;
 	float workers_percentage <- 0.45;
 	
