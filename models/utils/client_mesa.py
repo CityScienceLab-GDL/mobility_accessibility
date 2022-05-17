@@ -15,7 +15,7 @@ def on_message(client, userdata, message):
 	print('qos: %d' % message.qos)
 
 # Editar
-ser = serial.Serial('COM4', 9800, timeout=1) # Cambiar por COM en el que se conecta el arduino
+ser = serial.Serial('COM5', 9800, timeout=1) # Cambiar por COM en el que se conecta el arduino
 ser.flushInput()
 
 client= paho.Client("table_client")                           #create client object

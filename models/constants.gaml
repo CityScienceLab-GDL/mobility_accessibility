@@ -26,6 +26,10 @@ global{
 	string projects_csv_filename <- "/projects.csv";
 	string projects_shp_filename <- "/scenario2/projects.shp";
 	string allowed_activities_by_use_filename <- "/EQUIV_SCIAN_PP.csv";
+	string day_activities_csv_filename <- "/day_activities.csv";
+	string night_activities_csv_filename <- "/night_activities.csv";
+	string knowledge_activities_csv_filename <- "/knowledge_activities.csv";
+	string interaction_places_csv_filename <- "/interaction_places.csv";
 	
 	//List of files that are used to simulate the people flows in the case of cultural events
 	string events_roads_filename <- main_shp_path + "events/roads.shp";
@@ -132,18 +136,28 @@ global{
 	map<string,float> energy_requirement_map<-["Económica"::769.41,"Media"::3130.58,"Residencial"::3730.58];
 	map<string,float> waste_generation_map<-["Económica"::0.755,"Media"::1.005,"Residencial"::1.106];
 	map<string,float> water_requirement_map<-["Económica"::251.0,"Media"::535.0,"Residencial"::689.0];
-	list<float> roads_km <- [87.954];
+	list<float> roads_km <- [87.954,93.88];
 	float students_percentage <- 0.28;
 	float workers_percentage <- 0.45;
+	float ccu_area_ha <- 155.277;
+	float ccu_area_km2 <- ccu_area_ha * 0.01;
 	
+	list<float>s1_values <- [0.29971232822840527,0.5662388000764331,0.3371347549024506,0.35730413291554636,0.14918276063874233,0.7830046562585573,0.47887457615284046,0.5226646066080343,0.45011252813203295,0.7316829207301826,0.02852153502011456,0.8670975549722401,0.5226646066080343,0.5768042549058664];
+	list<float>s2_values <- [0.5814758130665304,0.8578181534493942,0.6204619000160776,0.353634698584762,0.1548924007974432,0.7808334394586737,0.37493608930814676,0.4092216070348485,0.3003003003003003,0.48815482148815487,0.02719682584560077,0.8978271599920978,0.4092216070348485,0.7934099217735945];
+	list<float>cs_values;
 	
 	
 	//Edge values
 	
-	float max_diversity <- 6.0;
+	float max_diversity <- 2.0;
 	float max_transport_accessibility <- 1.0;
 	float max_hab_emp_ratio <- 20.0;
-	float max_density <- 20.0;
+	float max_density <- 350.0;
+	float max_energy_requirement <- 7384.94;
+	float max_water_requirement <- 886.0;
+	float max_waste_generation <- 1.217;
+	float max_km_per_person <- 0.01;
+	float max_green_area_per_person <- 40.0;
 	int max_schools_near <- 4;
 	int max_hospitals_near <-4;
 	int max_culture_near <- 10;
