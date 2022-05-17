@@ -372,7 +372,7 @@ global skills:[network]{
 	}
 	
 	//This reflex is to produce cars flows for the mobility simulation
-	/*reflex generate_car_flows when:sum(event_location collect(each.capacity - each.current_people))>0{
+	reflex generate_car_flows when:sum(event_location collect(each.capacity - each.current_people))>0{
 		ask entry_point{
 			 
 			if flip(self.rate/100){
@@ -382,7 +382,7 @@ global skills:[network]{
 			}
 			
 		}
-	}*/
+	}
 	
 	reflex export_data_sc1 when:cycle=1 and false{
 		write "Saving data scenario 1";
@@ -466,6 +466,9 @@ global skills:[network]{
 	}
 	
 	reflex compute_current_data when:allow_export_current_data{
+		write "Saving scenarios";
+		do heatmap2education;
+		do heatmap2culture;
 		string output <- "";
 		loop i from:0 to:length(s1_values)-1{
 			output <- output + s1_values[i];
@@ -818,19 +821,7 @@ global skills:[network]{
 		ask ccu_heatmap{grid_value <- 0.0;}
 		
 		//Radar values
-		ask current_active_blocks inside (first(ccu_limit+1000)){
-			nb_different_education_equipment <- 0;
-			loop class over:education_distances.keys{
-				list<equipment> tmp_list <- education_facilities where(each.subtype = class) at_distance(education_distances[class]);
-				nb_different_education_equipment <- empty(tmp_list)?nb_different_education_equipment:nb_different_education_equipment+1;
-			}
-			ind_proximity_2_education_equipment <- nb_different_education_equipment > min_education_equipment;
-			ask people where(each.home_block=self){
-				ind_education_equipment_proximity <- myself.ind_proximity_2_education_equipment;
-			}
-			//int scenario_index <- scenario = 1?0:1;
-			//dash_educational_equipment_proximity[scenario_index] <- length(people where(each.from_scenario=scenario and each.ind_education_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
-		}
+		
 		//write length(people where(each.from_scenario=scenario and each.ind_education_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
 		ask blocks{
 			if length(people where(each.home_block=self)) = 0{
@@ -902,7 +893,7 @@ global skills:[network]{
 			list<heatmap> the_cells;
 			list<blocks> my_blocks <- current_active_blocks overlapping self;
 			ask my_blocks{
-				the_cells <- ccu_heatmap overlapping self;
+				the_cells <- ccu_heatmap overlapping self;	
 				ask the_cells{grid_value <- mean(my_blocks collect(each.culture_proximity));}
 			}
 		}
@@ -1234,6 +1225,7 @@ species intervention_area{
 	action activate_scenario(int new_scenario){
 		if active_scenario != new_scenario{
 			scenario_changed <- true;
+			allow_export_current_data <- true;
 			write area_name+": changing scenario "+active_scenario+" to "+new_scenario;
 			ask associated_projects where(each.from_scenario=active_scenario){
 				do deactivate;
@@ -1702,7 +1694,7 @@ species grid_paths{
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment CCU_1_1000 type:gui{
 	output{
-		display gui fullscreen:0 type:opengl background:#black axes:false{
+		display gui fullscreen:2 type:opengl background:#black axes:false{
 			 //BEST CALIBRATED CAMERAS
 			
 			// camera 'default' location: {1482.4217,1625.375,1913.8429} target: {1482.8714,1623.9457,0.0}; //ROTADA WORKING FIRST LIMITS
