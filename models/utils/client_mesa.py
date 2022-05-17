@@ -4,6 +4,8 @@ import paho.mqtt.client as paho
 broker="localhost"
 port=1883
 
+status = {"A":"1","B":"1","K":"1","I":"1", "L":"1"}
+
 def on_publish(client,userdata,result):             #create function for callback
     print("¡Publicado en Gama!".format(userdata, result))
     pass
@@ -27,18 +29,15 @@ while True:
     try:
         ser_bytes = ser.readline()
         msg = str(ser_bytes[0:len(ser_bytes)-2].decode("utf-8"))
-        if "[" in msg and "]" in msg:
-            msg_body = msg.split("[")[1]
-            msg_body = msg_body.split("]")[0]
-            msg_parts = msg_body.split(",")
-            for part in msg_parts:
-                polygon, scenario = part.split("/")
-                if polygon in ["A", "B", "K", "I", "L"] and \
-                scenario in ["1", "2", "3"]:
-                    pass
-                else:
-                    raise Exception("Mensaje incompleto")
-            print(msg_body)
+        msg_parts = msg.split("/")
+        if msg_parts[0] in ["A", "B", "K", "I", "L"] and msg_parts[1] in ["1", "2", "3"]:
+            polygon = msg_parts[0]
+            project = msg_parts[1]
+            if status[polygon] != project:
+                print("Nuevo proyecto '{}' para poligono '{}'".format(polygon, project))
+                status[polygon] = project
+            msg_body = "A/{},B/{},K/{},I/{},L/{}".format(status["A"], status["B"], \
+                                        status["K"], status["I"], status["L"])
             ret= client.publish("cityscope_table", msg_body) 
     except:
         print("Keyboard Interrupt")
