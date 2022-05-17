@@ -448,7 +448,16 @@ global skills:[network]{
 		] to:"../output/output_b.csv" type:"csv" rewrite:false;
 	}
 	
-	
+	action activate_scenario1{
+		ask intervention_area{
+			do activate_scenario(1);
+		}
+	}
+	action activate_scenario2{
+		ask intervention_area{
+			do activate_scenario(2);
+		}
+	}
 	//Function created to create paths from blocks to blocks
 	action pathfinder{
 		int valid <- 0;
@@ -522,7 +531,9 @@ global skills:[network]{
 	
 	//action select_scenario_1{scenario <- 1;}
 	//action select_scenario_2{scenario <- 2;}
-	
+	action showSatellite{
+		show_satellite <- !show_satellite;
+	}
 	action heatmap2polution{
 		dynamic_hp <- "polution";
 	}
@@ -950,7 +961,7 @@ species economic_unit{
 	string activity_id;
 	string sub_id;
 	aspect default{
-		draw circle(10);
+		draw square(1);
 	}
 }
 
@@ -970,7 +981,11 @@ species intervention_area{
 			
 			ask blocks_by_scenario[active_scenario-1]{
 				write "removing "+self.id+" from active blocks";
+				ask people where(each.home_block=self){
+					do die;
+				}
 				remove self from:current_active_blocks;
+				
 			}
 			ask blocks_by_scenario[new_scenario-1]{
 				add self to:current_active_blocks;
@@ -1057,8 +1072,8 @@ species base_grid{
 	
 	reflex update_interactions when:show_interactions and flip(0.1){
 		social_interactions <- min(1,(length(people where(each.from_scenario=self.from_scenario))/10));
-		if show_interactions{
-			ask ccu_heatmap where(each overlaps self){
+			if show_interactions{
+				ask ccu_heatmap where(each overlaps self){
 					grid_value <- myself.social_interactions;
 			}
 		}
@@ -1228,13 +1243,13 @@ species people skills:[moving]{
 	action compute_mobility_accessibility{
 		int transport_accessibilty_count <- 0;
 		list<float> distances <- [];
-		transport_station closest_station <- transport_station where(each.type="bus") closest_to self;
+		transport_station closest_station <-one_of(transport_station);//)) where(each.type="bus") closest_to self;
 		add closest_station distance_to self to:distances;
-		closest_station <- transport_station where(each.type="massive" and each.subtype="BRT (Bus Rapid Transit)") closest_to self;
+		closest_station <- one_of(transport_station);//transport_station where(each.type="massive" and each.subtype="BRT (Bus Rapid Transit)") closest_to self;
 		add closest_station distance_to self to:distances;
-		closest_station <- transport_station where(each.type="massive" and each.subtype="Tren Eléctrico") closest_to self;
+		closest_station <- one_of(transport_station);// where(each.type="massive" and each.subtype="Tren Eléctrico") closest_to self;
 		add closest_station distance_to self to:distances;
-		cycling_way closest_cycling_way <- cycling_way closest_to self;
+		cycling_way closest_cycling_way <- one_of(cycling_way);// closest_to self;
 		add closest_station distance_to self to:distances;
 		if distances[0] < 300{transport_accessibilty_count <- transport_accessibilty_count + 1;} 
 		if distances[1] < 500{transport_accessibilty_count <- transport_accessibilty_count + 1;}
@@ -1287,7 +1302,7 @@ species people skills:[moving]{
 	}
 	
 	//This reflex controls the agent's activities to do during the day
-	reflex update_agenda when: (every(#day)) {
+	reflex build_agenda when: not dead(self) and empty(agenda_day) or (every(#day)) {
 		agenda_day <- [];
 		point the_activity_location <- any_location_in(target_block);
 		int activity_time <- rnd(2,12);
@@ -1300,12 +1315,18 @@ species people skills:[moving]{
 		activity_date <- activity_date + init_minute#minutes;
 		agenda_day <+ (activity_date::"home");
 	}
-	reflex update_activity when:not empty(agenda_day) and (after(agenda_day.keys[0])) {
-		string current_activity <-agenda_day.values[0];
-		target_point <- current_activity = "activity"?any_location_in(target_block):any_location_in(home_block);
-		agenda_day>>first(agenda_day);
-		currently_moving <- true;
+	reflex update_activity when:not dead(self) and not empty(agenda_day){
+		try{
+			if after(agenda_day.keys[0]) {
+		  	string current_activity <-agenda_day.values[0];
+			target_point <- current_activity = "activity"?any_location_in(target_block):any_location_in(home_block);
+			agenda_day>>first(agenda_day);
+			currently_moving <- true;
+	 	 }
 	}
+	  
+ }
+	
 	
 	//This reflex controls the action of moving from point A to B
 	reflex moving{
@@ -1387,6 +1408,9 @@ experiment CCU_1_1000 type:gui{
 			event w action:heatmap2knowdiv;
 			event m action:heatmap2mobility;
 			event p action:heatmap2polution;
+			event q action:showSatellite;
+			event t action:activate_scenario1;
+			event y action:activate_scenario2;
 		}
 	}
 }
