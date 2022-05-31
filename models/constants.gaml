@@ -140,6 +140,7 @@ global{
 	float students_percentage <- 0.28;
 	float workers_percentage <- 0.45;
 	float ccu_area_ha <- 155.277;
+	float dcu_area_ha <- 456.0;
 	float ccu_area_km2 <- ccu_area_ha * 0.01;
 	
 	list<float>s1_values <- [0.29971232822840527,0.5662388000764331,0.3371347549024506,0.35730413291554636,0.14918276063874233,0.7830046562585573,0.47887457615284046,0.5226646066080343,0.45011252813203295,0.7316829207301826,0.02852153502011456,0.8670975549722401,0.5226646066080343,0.5768042549058664];
@@ -149,15 +150,16 @@ global{
 	
 	//Edge values
 	
-	float max_diversity <- 2.0;
+	float max_diversity <- 1.0;
 	float max_transport_accessibility <- 1.0;
 	float max_hab_emp_ratio <- 20.0;
-	float max_density <- 350.0;
-	float max_energy_requirement <- 7384.94;
-	float max_water_requirement <- 886.0;
-	float max_waste_generation <- 1.217;
-	float max_km_per_person <- 0.01;
-	float max_green_area_per_person <- 40.0;
+	float max_density <- 1.0;
+	float max_energy_requirement <- 1.0;//7384.94;
+	float max_water_requirement <- 1.0;//886.0;
+	float max_waste_generation <- 1.0;//1.217;
+	float max_km_per_person <- 1.0;
+	float max_km_per_km2 <- 1.0;
+	float max_green_area_per_person <- 1.0;
 	int max_schools_near <- 4;
 	int max_hospitals_near <-4;
 	int max_culture_near <- 10;

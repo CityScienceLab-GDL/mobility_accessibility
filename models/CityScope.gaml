@@ -71,10 +71,9 @@ global skills:[network]{
 	bool show_intervention_areas <- false parameter:"Intervention areas" category:"Visualization";
 	
 	//Heatmap  variables
-	bool show_heatmap <- false;
+	string current_heatmap 		<- "";
+	bool show_heatmap 			<- false;
 	list<heatmap> ccu_heatmap;
-	bool show_interactions <- false;
-	string dynamic_hp <- "";
 	
 	//Indicators  variables
 	list<equipment> education_facilities;
@@ -93,37 +92,39 @@ global skills:[network]{
 	//Indicators variables that are going to be sent to the dashboard
 	bool allow_export_data <- false;
 	bool allow_export_data_sc2 <- false;
-	bool allow_export_current_data <- true;
+	bool allow_export_current_data <- false;
 	bool write_log <- false;
 	bool scenario_changed <- false;
 	
 	//All this indicators are initialized to 0 at each of the 3 scenarios.
 	//DIVERSITY
-	list<float> dash_day_activities_diversity 				<- [0.0,0.0,0.0];
+	list<float> dash_day_activities_diversity 					<- [0.0,0.0,0.0];
 	list<float> dash_night_activities_diversity 				<- [0.0,0.0,0.0];
 	list<float> dash_third_activities_diversity 				<- [0.0,0.0,0.0];
-	list<float> dash_knowledge_activities_diversity 	<- [0.0,0.0,0.0];
-	list<float> dash_interaction_diversity 	<- [0.0,0.0,0.0];
+	list<float> dash_knowledge_activities_diversity 			<- [0.0,0.0,0.0];
+	list<float> dash_interaction_diversity 						<- [0.0,0.0,0.0];
 	//FUNCTIONALITY
 	list<float> dash_hab_net_density 							<- [0.0,0.0,0.0];
-	list<float> dash_living_place_density 					<- [0.0,0.0,0.0];
-	list<float> dash_day_density 					<- [0.0,0.0,0.0];
-	list<float> dash_night_density 				<- [0.0,0.0,0.0];
-	list<float> dash_knowledge_density						<- [0.0,0.0,0.0];
+	list<float> dash_living_place_density 						<- [0.0,0.0,0.0];
+	list<float> dash_day_density 								<- [0.0,0.0,0.0];
+	list<float> dash_night_density 								<- [0.0,0.0,0.0];
+	list<float> dash_knowledge_density							<- [0.0,0.0,0.0];
 	list<float> dash_interaction_density						<- [0.0,0.0,0.0];
+	list<float> dash_mean_activities_density					<- [0.0,0.0,0.0];
 	list<float> dash_green_proximity 							<- [0.0,0.0,0.0];
-	list<float> dash_public_spaces_proximity 				<- [0.0,0.0,0.0];
+	list<float> dash_public_spaces_proximity 					<- [0.0,0.0,0.0];
 	list<float> dash_educational_equipment_proximity 			<- [0.0,0.0,0.0];
 	list<float> dash_cultural_equipment_proximity 				<- [0.0,0.0,0.0];
-	list<float> dash_health_equipment_proximity 					<- [0.0,0.0,0.0];
-	list<float> dash_social_assistance_equipment_proximity <- [0.0,0.0,0.0];
-	list<float> dash_intersections_density 								<- [0.0,0.0,0.0];
-	list<float> dash_public_transport_coverage						<- [0.0,0.0,0.0];
-	list<float>	dash_km_ways_per_hab									<- [0.0,0.0,0.0];
-	list<float>	dash_km_ways_per_km2									<- [0.0,0.0,0.0];
+	list<float> dash_health_equipment_proximity 				<- [0.0,0.0,0.0];
+	list<float> dash_social_assistance_equipment_proximity 		<- [0.0,0.0,0.0];
+	list<float> dash_mean_facilities_proximity					<- [0.0,0.0,0.0];
+	list<float> dash_intersections_density 						<- [0.0,0.0,0.0];
+	list<float> dash_public_transport_coverage					<- [0.0,0.0,0.0];
+	list<float>	dash_km_ways_per_hab							<- [0.0,0.0,0.0];
+	list<float>	dash_km_ways_per_km2							<- [0.0,0.0,0.0];
 	//ENVIRONMENTAL IMPACT
 	list<float> dash_energy_requirement 	<- [0.0,0.0,0.0];
-	list<float> dash_water_requirement 	<- [0.0,0.0,0.0];
+	list<float> dash_water_requirement 		<- [0.0,0.0,0.0];
 	list<float> dash_waste_generation 		<- [0.0,0.0,0.0];
 	
 	//Visualization variables
@@ -197,13 +198,7 @@ global skills:[network]{
 			mobility_accessibility <- transport_accessibilty_count /4;
 			ind_public_transport_coverage <- transport_accessibilty_count >=3;
 			
-		}
-		
-		/*ask base_grid {
-			list<people>my_people <- people where(each.from_scenario = self.from_scenario) inside self;
-			self.transportation_access <- mean(my_people collect(each.mobility_accessibility));
-		} */
-		
+		}		
 		
 		//Create road network
 		roads_weight <- roads where(each.from_scenario=1) as_map (each:: each.shape.perimeter);
@@ -262,7 +257,6 @@ global skills:[network]{
 				}
 			}
 		}	
-		//create project from:projects_shp with:[id::read("ID_CCU"),block_id::read("ID_BLOCK"),from_scenario::2];
 		
 		//Create intervention areas
 		create intervention_area from:intervention_areas_shp with:[active_scenario::1,id::read("fid"),area_name::read("nombre"),associated_projects_str::read("id_ccu"), blocksS1_str::read("ID_BLOCK_E"),blocksS2_str::read("ID_BLOCK_1"),blocksS3_str::read("ID_BLOCK_2")]{
@@ -311,21 +305,21 @@ global skills:[network]{
 		ccu_limit_shp 				<- [];
 		s1_roads_shp 				<- [];
 		s1_blocks_shp 				<- [];
-		s1_equipment_shp 		<-[];
-		s1_grid_shp 					<- [];
+		s1_equipment_shp 			<-[];
+		s1_grid_shp 				<- [];
 		s2_roads_shp 				<- [];
 		s2_blocks_shp 				<- [];
-		s2_grid_shp 					<- [];
+		s2_grid_shp 				<- [];
 		green_areas_shp 			<- [];
-		ccu_transport_shp 		<- [];
-		ccu_massive_transport_shp <- [];
-		dcu_satellite_shp 		<- [];
-		cycling_ways_shp 		<- [];
-		intervention_areas_shp 	<- [];
-		projects_shp 					<- [];
-		events_roads_shp 		<- [];
-		events_entry_points_shp 		<- [];
-		events_location_points_shp <- [];
+		ccu_transport_shp 			<- [];
+		ccu_massive_transport_shp 	<- [];
+		dcu_satellite_shp 			<- [];
+		cycling_ways_shp 			<- [];
+		intervention_areas_shp 		<- [];
+		projects_shp 				<- [];
+		events_roads_shp 			<- [];
+		events_entry_points_shp 	<- [];
+		events_location_points_shp 	<- [];
 		data <- nil;
 		
 		
@@ -338,21 +332,43 @@ global skills:[network]{
 		list<economic_unit> valid_unit;
 		ask ccu_limit{
 			ccu_heatmap 				<- heatmap inside(self);
-			ref_grid							<- base_grid inside(self +100);
+			ref_grid					<- base_grid inside(self +100);
 			valid_people <- people inside self;
 			valid_unit <- economic_unit inside self;
 		}
 		ask people{
-			if not (self in valid_people){do die;}
+			if not (self in valid_people){to_be_killed <- true;}
 		}
 		ask economic_unit{
 			if not(self in valid_unit){do die;}
+		}
+		ask heatmap{
+			if not(self in ccu_heatmap){do die;}
 		}
 		
 		//Ask people to initialize paths
 		//ask people{do init_path;}
 		
 		
+	}
+	
+	//Thos reflex is written to update the heatmap if a change in the table is detected
+	reflex update_current_heatmap when:scenario_changed and show_heatmap{
+		switch current_heatmap{
+			match "health" {do heatmap2health;}
+			match "culture"{do heatmap2culture;}
+			match "education"{do heatmap2education;}
+			match "sports"{do heatmap2sports;}
+			match "day_diversity"{do heatmap2daydiv;}
+			match "night_diversity"{do heatmap2nightdiv;}
+			match "knowledge_diversity"{do heatmap2knowdiv;}
+			match "day_density"{do heatmap2daydensity;}
+			match "night_density"{do heatmap2nightdensity;}
+			match "knowledge_density"{do heatmap2knowledgedensity;}
+			match "interaction_density"{do heatmap2interactiondensity;}
+			match "mobility" {do heatmap2mobility;}
+		}
+		scenario_changed <- false;
 	}
 	
 	//Reflex to listen to the MQTT topic
@@ -369,10 +385,22 @@ global skills:[network]{
 				do activate_scenario(int(letters[1]));
 			}
 		}
+		allow_export_data_sc2 <- true;
 	}
 	
+	
+	action activate_scenario1{
+		ask intervention_area {
+			do activate_scenario(1);
+		}
+	}
+	action activate_scenario2{
+		ask intervention_area {
+			do activate_scenario(2);
+		}
+	}
 	//This reflex is to produce cars flows for the mobility simulation
-	reflex generate_car_flows when:sum(event_location collect(each.capacity - each.current_people))>0{
+	/*reflex generate_car_flows when:sum(event_location collect(each.capacity - each.current_people))>0{
 		ask entry_point{
 			 
 			if flip(self.rate/100){
@@ -382,9 +410,9 @@ global skills:[network]{
 			}
 			
 		}
-	}
+	}*/
 	
-	reflex export_data_sc1 when:cycle=1 and false{
+	reflex export_data_sc1 when:cycle=1 and allow_export_data{
 		write "Saving data scenario 1";
 		do heatmap2education;
 		do heatmap2culture;
@@ -399,15 +427,18 @@ global skills:[network]{
 		dash_energy_requirement[0] <- mean_energy_requirement()/max_energy_requirement;
 		dash_waste_generation[0] <- mean_waste_generation()/max_waste_generation;
 		dash_water_requirement[0] <- mean_water_requirement()/max_water_requirement;
-		dash_km_ways_per_hab[0] <- km_roads_per_person()/max_km_per_person;
-		dash_green_proximity[0] <- ((sum(green_area collect(each.surface_area))/sum(current_active_blocks collect(each.nb_people)))*0.3)/max_green_area_per_person;
+		dash_km_ways_per_hab[0] <- km_roads_per_person(0)/max_km_per_person;
+		dash_km_ways_per_km2[0] <- km_roads_per_km2(0)/max_km_per_km2;
+		dash_green_proximity[0] <- ((sum(green_area collect(each.surface_area))/sum(current_active_blocks collect(each.nb_people))))/max_green_area_per_person;
 		dash_educational_equipment_proximity[0] <- length(people where(each.ind_education_equipment_proximity))/length(people);
 		dash_cultural_equipment_proximity[0] <- length(people where(each.ind_cultural_equipment_proximity))/length(people);
 		dash_health_equipment_proximity[0] <- length(people where(each.ind_health_equipment_proximity))/length(people);
-		dash_day_density[0] <- mean(base_grid collect(each.day_density));
-		dash_night_density[0] <- mean(base_grid collect(each.night_density));
-		dash_knowledge_density[0] <- mean(base_grid collect(each.knowledge_density));
-		dash_interaction_density[0] <- mean(base_grid collect(each.interaction_density));
+		dash_mean_facilities_proximity[0] <- mean(dash_educational_equipment_proximity[0],dash_cultural_equipment_proximity[0],dash_health_equipment_proximity[0]);
+		dash_day_density[0] <- mean_density_day();
+		dash_night_density[0] <- mean_density_night();
+		dash_knowledge_density[0] <- mean_density_knowledge();
+		dash_interaction_density[0] <- mean_density_interactions();
+		dash_mean_activities_density[0] <- mean([dash_day_density[0],dash_night_density[0],dash_knowledge_density[0],dash_interaction_density[0]]);
 		save data:[
 			dash_night_activities_diversity[0],
 			dash_interaction_diversity[0],
@@ -418,16 +449,30 @@ global skills:[network]{
 			dash_green_proximity[0],
 			dash_km_ways_per_hab[0],
 			dash_public_transport_coverage[0],
-			mean([dash_educational_equipment_proximity[0],dash_cultural_equipment_proximity[0],dash_health_equipment_proximity[0]]),
-			mean([dash_day_density[0],dash_night_density[0],dash_knowledge_density[0],dash_interaction_density[0]]),
+			dash_educational_equipment_proximity[0],
+			dash_cultural_equipment_proximity[0],
+			dash_health_equipment_proximity[0],
+			dash_mean_facilities_proximity[0],
+			dash_mean_activities_density[0],
+			dash_day_density[0],
+			dash_night_density[0],
+			dash_knowledge_density[0],
+			dash_interaction_density[0],
 			dash_hab_net_density[0],
-			dash_km_ways_per_hab[0],
+			dash_km_ways_per_km2[0],
 			dash_day_activities_diversity[0]
 			
-		] to:"../output/output_s1.csv" type:"csv" rewrite:true;
-	}	
-	reflex export_data_sc2 when:allow_export_data_sc2 and false{
+		] to:"output_s1.csv" type:"csv" rewrite:false;
+	}
+	reflex export_data_sc2 when:allow_export_data_sc2{
 		//Scenario 2
+		do heatmap2education;
+		do heatmap2culture;
+		do heatmap2health;
+		do mean_density_day;
+		do mean_density_night;
+		do mean_density_knowledge;
+		do mean_density_interactions;
 		dash_day_activities_diversity[1] <- mean_diversity_day()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.day_diversity));
 		dash_night_activities_diversity[1] <- mean_diversity_night()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.night_diversity));
 		dash_knowledge_activities_diversity[1] <- mean_diversity_knowledge()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.knowledge_diversity));
@@ -437,15 +482,18 @@ global skills:[network]{
 		dash_energy_requirement[1] <- mean_energy_requirement()/max_energy_requirement;
 		dash_waste_generation[1] <- mean_waste_generation()/max_waste_generation;
 		dash_water_requirement[1] <- mean_water_requirement()/max_water_requirement;
-		dash_km_ways_per_hab[1] <- km_roads_per_person()/max_km_per_person;
-		dash_green_proximity[1] <- ((sum(green_area collect(each.surface_area))/sum(current_active_blocks collect(each.nb_people)))*0.3)/max_green_area_per_person;
+		dash_km_ways_per_hab[1] <- km_roads_per_person(1)/max_km_per_person;
+		dash_km_ways_per_km2[1] <- km_roads_per_km2(1)/max_km_per_km2;
+		dash_green_proximity[1] <- ((sum(green_area collect(each.surface_area))/sum(blocks where(each.from_scenario=1) collect(each.nb_people))))/max_green_area_per_person;
 		dash_educational_equipment_proximity[1] <- length(people where(each.ind_education_equipment_proximity))/length(people);
 		dash_cultural_equipment_proximity[1] <- length(people where(each.ind_cultural_equipment_proximity))/length(people);
 		dash_health_equipment_proximity[1] <- length(people where(each.ind_health_equipment_proximity))/length(people);
-		dash_day_density[1] <- mean(base_grid collect(each.day_density));
-		dash_night_density[1] <- mean(base_grid collect(each.night_density));
-		dash_knowledge_density[1] <- mean(base_grid collect(each.knowledge_density));
-		dash_interaction_density[1] <- mean(base_grid collect(each.interaction_density));
+		dash_mean_facilities_proximity[1] <- mean(dash_educational_equipment_proximity[1],dash_cultural_equipment_proximity[1],dash_health_equipment_proximity[1]);
+		dash_day_density[1] <- mean_density_day();
+		dash_night_density[1] <- mean_density_night();
+		dash_knowledge_density[1] <- mean_density_knowledge();
+		dash_interaction_density[1] <- mean_density_interactions();
+		dash_mean_activities_density[1] <- mean([dash_day_density[1],dash_night_density[1],dash_knowledge_density[1],dash_interaction_density[1]]);
 		save data:[
 			dash_night_activities_diversity[1],
 			dash_interaction_diversity[1],
@@ -456,175 +504,87 @@ global skills:[network]{
 			dash_green_proximity[1],
 			dash_km_ways_per_hab[1],
 			dash_public_transport_coverage[1],
-			mean([dash_educational_equipment_proximity[1],dash_cultural_equipment_proximity[1],dash_health_equipment_proximity[1]]),
-			mean([dash_day_density[1],dash_night_density[1],dash_knowledge_density[1],dash_interaction_density[1]]),
-			dash_hab_net_density[1],
-			dash_km_ways_per_hab[1],
-			dash_day_activities_diversity[1]
-			
-		] to:"../output/output_s2.csv" type:"csv" rewrite:true;
-	}
-	
-	reflex compute_current_data when:allow_export_current_data{
-		write "Saving scenarios";
-		do heatmap2education;
-		do heatmap2culture;
-		string output <- "";
-		loop i from:0 to:length(s1_values)-1{
-			output <- output + s1_values[i];
-			if i = length(s1_values)-1{
-				output <- output + "\n";
-			}
-			else{
-				output <- output + ",";
-			}
-		}
-		loop i from:0 to:length(s2_values)-1{
-			output <- output + s2_values[i];
-			if i = length(s2_values)-1{
-				output <- output + "\n";
-			}
-			else{
-				output <- output + ",";
-			}
-		}
-		
-		dash_day_activities_diversity[2] <- mean_diversity_day()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.day_diversity));
-		dash_night_activities_diversity[2] <- mean_diversity_night()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.night_diversity));
-		dash_knowledge_activities_diversity[2] <- mean_diversity_knowledge()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.knowledge_diversity));
-		dash_interaction_diversity[2] <- mean_diversity_interaction()/max_diversity;
-		dash_hab_net_density[2] <- mean_population_density()/max_density;
-		dash_public_transport_coverage[2] <- (length(people where(each.ind_public_transport_coverage))/length(people))*100;
-		dash_energy_requirement[2] <- mean_energy_requirement()/max_energy_requirement;
-		dash_waste_generation[2] <- mean_waste_generation()/max_waste_generation;
-		dash_water_requirement[2] <- mean_water_requirement()/max_water_requirement;
-		dash_km_ways_per_hab[2] <- km_roads_per_person()/max_km_per_person;
-		dash_green_proximity[2] <- ((sum(green_area collect(each.surface_area))/sum(current_active_blocks collect(each.nb_people)))*0.3)/max_green_area_per_person;
-		dash_educational_equipment_proximity[2] <- length(people where(each.ind_education_equipment_proximity))/length(people);
-		dash_cultural_equipment_proximity[2] <- length(people where(each.ind_cultural_equipment_proximity))/length(people);
-		dash_health_equipment_proximity[2] <- length(people where(each.ind_health_equipment_proximity))/length(people);
-		dash_day_density[2] <- mean(base_grid collect(each.day_density));
-		dash_night_density[2] <- mean(base_grid collect(each.night_density));
-		dash_knowledge_density[2] <- mean(base_grid collect(each.knowledge_density));
-		dash_interaction_density[2] <- mean(base_grid collect(each.interaction_density));
-		output <- output+
-			dash_night_activities_diversity[2]+","+
-			dash_interaction_diversity[2]+","+
-			dash_knowledge_activities_diversity[2]+","+
-			dash_energy_requirement[2]+","+
-			dash_water_requirement[2]+","+
-			dash_waste_generation[2]+","+
-			dash_green_proximity[2]+","+
-			dash_km_ways_per_hab[2]+","+
-			dash_public_transport_coverage[2]+","+
-			mean([dash_educational_equipment_proximity[2],dash_cultural_equipment_proximity[2],dash_health_equipment_proximity[2]])+","+
-			mean([dash_day_density[2],dash_night_density[2],dash_knowledge_density[2],dash_interaction_density[2]])+","+
-			dash_hab_net_density[2]+","+
-			dash_km_ways_per_hab[2]+","+
-			dash_day_activities_diversity[2];
-		save output to:"../output/Radial.csv" type:"csv" rewrite:true header:false;
-		save data:[dash_educational_equipment_proximity[2],dash_health_equipment_proximity[2],dash_cultural_equipment_proximity[2]] to:"../output/Equipamientos.csv" type:"csv" rewrite:true header:false;
-		save data:[dash_day_density[2],dash_night_density[2],dash_interaction_density[2],dash_knowledge_density[2]] to:"../output/Densidad.csv" type:"csv" rewrite:true header:false;
-		save data:[0.2,0.4,dash_km_ways_per_hab[2],(roads_km[1])/ccu_area_km2] to:"../output/Caminabilidad.csv" type:"csv" rewrite:true header:false;
-		save data:[dash_water_requirement[2],dash_energy_requirement[2],dash_waste_generation[2]] to:"../output/Energia.csv" type:"csv" rewrite:true header:false;
-		allow_export_current_data <- false;
-	}
-	
-	//This reflex exports the data that is going to be read by the dashboard
-	reflex compute_export_data when:allow_export_data and false{
-		//Some of the values that are exported by this funcion are computed in other functions.
-		
-		//1. DIVERSIDAD
-		/*
-		 dash_day_activities_diversity;OK
-		 dash_night_activities_diversity;OK
-		 dash_third_activities_diversity;
-		 dash_knowledge_activities_diversity;OK
-		 */
-		 
-		 dash_day_activities_diversity[0] <- mean(ref_grid where(each.from_scenario=1) collect(each.day_diversity));
-		 dash_day_activities_diversity[1] <- mean(ref_grid where(each.from_scenario=2) collect(each.day_diversity));
-		 dash_night_activities_diversity[0] <- mean(ref_grid where(each.from_scenario=1) collect(each.night_diversity));
-		 dash_night_activities_diversity[1] <- mean(ref_grid where(each.from_scenario=2) collect(each.night_diversity));
-		 dash_knowledge_activities_diversity[0] <- mean(ref_grid where(each.from_scenario=1) collect(each.knowledge_diversity));
-		 dash_knowledge_activities_diversity[1] <- mean(ref_grid where(each.from_scenario=2) collect(each.knowledge_diversity));
-		 dash_hab_net_density[0] <- sum(blocks where(each.from_scenario=1) collect(each.nb_people)) / sum(blocks where(each.from_scenario=1) collect(each.block_area));
-		 
-		//2. FUNCIONALIDAD
-		 /*
-		dash_hab_net_density;OK
-		dash_living_place_density;
-		dash_day_activities_density;
-		dash_night_activities_density;
-		dash_innovation_potential;
-		dash_green_proximity;
-		dash_public_spaces_proximity;OK
-		dash_educational_equipment_proximity;OK
-		dash_cultural_equipment_proximity;OK
-		dash_health_equipment_proximity;OK
-		dash_social_assistance_equipment_proximity;
-		dash_intersections_density;
-		dash_public_transport_coverage;OK
-		dash_km_ways_per_hab;
-		dash_km_ways_per_km2;
-		*/
-		
-		dash_hab_net_density[0] <- sum(blocks where(each.from_scenario=1) collect(each.nb_people)) / sum(blocks where(each.from_scenario=1) collect(each.block_area));
-		dash_hab_net_density[1] <- sum(blocks where(each.from_scenario=2) collect(each.nb_people)) / sum(blocks where(each.from_scenario=2) collect(each.block_area));
-		dash_public_transport_coverage[0] <- length(people where(each.from_scenario =1 and each.ind_public_transport_coverage))/length(people where(each.from_scenario=1));
-		dash_public_transport_coverage[1] <- length(people where(each.from_scenario =1 and each.ind_public_transport_coverage))/length(people where(each.from_scenario=2));
-		
-		
-		//3. IMPACTO AMBIENTAL
-		 /*
-		 dash_energy_requirement;
-		 dash_waste_generation;
-		 */
-		 
-		 
-		
-		
-		if (write_log){
-			write "--------------------------- DASHBOARD VALUES------------------------------";
-			write "DIVERSIDAD";
-			write "Diversidad de actividades diurnas: "+dash_day_activities_diversity;
-			write "Diversidad de actividades nocturnas: "+dash_night_activities_diversity;	
-			write "Diversidad de actividades densas en conocimiento: "+dash_knowledge_activities_diversity;
-			
-			write "FUNCIONALIDAD";
-			write "Densidad neta de habitantes: "+dash_hab_net_density;
-			write "Proximidad a espacios públicos abiertos: "+dash_public_spaces_proximity;
-			write "Proximidad a equipamientos educativos: "+dash_educational_equipment_proximity;
-			write "Proximidad a equipamientos culturales: "+dash_cultural_equipment_proximity;
-			write "Proximidad a equipamientos de salud: "+dash_health_equipment_proximity;
-			write "Proximidad a transporte alternativo: "+ dash_public_transport_coverage;
-			write "";
-		}
-		
-	}
-	//This reflex is for saving simulation data in order to be exported to the dashboard
-	reflex export_data when:allow_export_data and every(5#cycle){
-		save data:[dash_day_activities_diversity[0],
-			dash_night_activities_diversity[0],
-			dash_knowledge_activities_diversity[0],
-			dash_hab_net_density[0],
-			dash_public_spaces_proximity[0],
 			dash_educational_equipment_proximity[0],
 			dash_cultural_equipment_proximity[0],
 			dash_health_equipment_proximity[0],
-			dash_public_transport_coverage[0]
-		] to:"../output/output_a.csv" type:"csv" rewrite:false;
-		save data:[dash_day_activities_diversity[1],
-			dash_night_activities_diversity[1],
-			dash_knowledge_activities_diversity[1],
+			dash_mean_facilities_proximity[1],
+			dash_mean_activities_density[1],
+			dash_day_density[1],
+			dash_night_density[1],
+			dash_knowledge_density[1],
+			dash_interaction_density[1],
 			dash_hab_net_density[1],
-			dash_public_spaces_proximity[1],
-			dash_educational_equipment_proximity[1],
-			dash_cultural_equipment_proximity[1],
-			dash_health_equipment_proximity[1],
-			dash_public_transport_coverage[1]
-		] to:"../output/output_b.csv" type:"csv" rewrite:false;
+			dash_km_ways_per_km2[1],
+			dash_day_activities_diversity[1]
+			
+		] to:"output_s2.csv" type:"csv" rewrite:true;
+		allow_export_data_sc2 <- false;
 	}
+	
+	/*reflex compute_current_data when:allow_export_current_data{
+		try{
+			string output <- "";
+			loop i from:0 to:length(s1_values)-1{
+				output <- output + s1_values[i];
+				if i = length(s1_values)-1{
+					output <- output + "\n";
+				}
+				else{
+					output <- output + ",";
+				}
+			}
+			loop i from:0 to:length(s2_values)-1{
+				output <- output + s2_values[i];
+				if i = length(s2_values)-1{
+					output <- output + "\n";
+				}
+				else{
+					output <- output + ",";
+				}
+			}
+			
+			dash_day_activities_diversity[2] <- mean_diversity_day()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.day_diversity));
+			dash_night_activities_diversity[2] <- mean_diversity_night()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.night_diversity));
+			dash_knowledge_activities_diversity[2] <- mean_diversity_knowledge()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.knowledge_diversity));
+			dash_interaction_diversity[2] <- mean_diversity_interaction()/max_diversity;
+			dash_hab_net_density[2] <- mean_population_density()/max_density;
+			dash_public_transport_coverage[2] <- (length(people where(each.ind_public_transport_coverage))/length(people))*100;
+			dash_energy_requirement[2] <- mean_energy_requirement()/max_energy_requirement;
+			dash_waste_generation[2] <- mean_waste_generation()/max_waste_generation;
+			dash_water_requirement[2] <- mean_water_requirement()/max_water_requirement;
+			dash_km_ways_per_hab[2] <- km_roads_per_person()/max_km_per_person;
+			dash_green_proximity[2] <- ((sum(green_area collect(each.surface_area))/sum(current_active_blocks collect(each.nb_people)))*0.3)/max_green_area_per_person;
+			dash_educational_equipment_proximity[2] <- length(people where(each.ind_education_equipment_proximity))/length(people);
+			dash_cultural_equipment_proximity[2] <- length(people where(each.ind_cultural_equipment_proximity))/length(people);
+			dash_health_equipment_proximity[2] <- length(people where(each.ind_health_equipment_proximity))/length(people);
+			dash_day_density[2] <- mean(base_grid collect(each.day_density));
+			dash_night_density[2] <- mean(base_grid collect(each.night_density));
+			dash_knowledge_density[2] <- mean(base_grid collect(each.knowledge_density));
+			dash_interaction_density[2] <- mean(base_grid collect(each.interaction_density));
+			output <- output+
+				dash_night_activities_diversity[2]+","+
+				dash_interaction_diversity[2]+","+
+				dash_knowledge_activities_diversity[2]+","+
+				dash_energy_requirement[2]+","+
+				dash_water_requirement[2]+","+
+				dash_waste_generation[2]+","+
+				dash_green_proximity[2]+","+
+				dash_km_ways_per_hab[2]+","+
+				dash_public_transport_coverage[2]+","+
+				mean([dash_educational_equipment_proximity[2],dash_cultural_equipment_proximity[2],dash_health_equipment_proximity[2]])+","+
+				mean([dash_day_density[2],dash_night_density[2],dash_knowledge_density[2],dash_interaction_density[2]])+","+
+				dash_hab_net_density[2]+","+
+				dash_km_ways_per_hab[2]+","+
+				dash_day_activities_diversity[2];
+			save output to:"../output/Radial.csv" type:"csv" rewrite:true header:false;
+			save data:[dash_educational_equipment_proximity[2],dash_health_equipment_proximity[2],dash_cultural_equipment_proximity[2]] to:"../output/Equipamientos.csv" type:"csv" rewrite:true header:false;
+			save data:[dash_day_density[2],dash_night_density[2],dash_interaction_density[2],dash_knowledge_density[2]] to:"../output/Densidad.csv" type:"csv" rewrite:true header:false;
+			save data:[0.2,0.4,dash_km_ways_per_hab[2],(roads_km[1])/ccu_area_km2] to:"../output/Caminabilidad.csv" type:"csv" rewrite:true header:false;
+			save data:[dash_water_requirement[2],dash_energy_requirement[2],dash_waste_generation[2]] to:"../output/Energia.csv" type:"csv" rewrite:true header:false;
+			allow_export_current_data <- false;
+		}	
+	}*/
+		
 	
 	
 	//Function created to create paths from blocks to blocks
@@ -689,16 +649,25 @@ global skills:[network]{
 	
 	float mean_population_density{
 		float result;
-		ask current_active_blocks{
+		/*ask current_active_blocks{
 			do compute_population_density;
-		}
-		result <- mean(current_active_blocks where(each.population_density>0) collect(each.population_density));
+		}*/
+		float total_blocks_area <- sum(current_active_blocks collect(each.block_area));
+		total_blocks_area <- total_blocks_area * 0.0001;
+		int total_population <- sum(current_active_blocks collect(each.nb_people));
+		result <- total_population/total_blocks_area;//mean(current_active_blocks where(each.population_density>0) collect(each.population_density));
 		write result;
 		return result;
 	}
-	float km_roads_per_person{
+	float km_roads_per_person(int sc){
 		float result;
-		result <- roads_km[0]/sum(current_active_blocks collect(each.nb_people));
+		result <- roads_km[sc]/(sum(current_active_blocks collect(each.nb_people))/100);
+		return result;
+	}
+	float km_roads_per_km2(int sc){
+		float result;
+		float dcu_km2 <- dcu_area_ha * 0.01;
+		result <- roads_km[sc]/dcu_area_ha;
 		return result;
 	}
 	
@@ -731,58 +700,145 @@ global skills:[network]{
 	
 	float mean_diversity_day{
 		float result;
-		ask base_grid{do compute_diversity_day;}
+		map<string,int> class_counter;
+		loop i over:day_activities{
+			add i::0 to:class_counter;
+		}
+		list<economic_unit> my_tmp_activities <- economic_unit where(each.sub_id in day_activities);
+		if not empty(my_tmp_activities){
+			loop act over:my_tmp_activities{
+				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
+			}
+		}
+		int total_activities <- sum(class_counter.values);
+		if total_activities=0{
+			result <- 0.0;
+		}
+		else{
+			result <- -1*sum(class_counter.values collect((each/total_activities)*(each<=0?0:ln(each/total_activities))));	
+		}
+		return result;
+		
+		/*ask base_grid{do compute_diversity_day;}
 		result <- mean(base_grid where(each.day_diversity>0) collect(each.day_diversity)) ;
 		write result;
-		return result;
+		return result;*/
 	}
 	
 	float mean_diversity_night{
 		float result;
-		ask base_grid{do compute_diversity_night;}
+		
+		map<string,int> class_counter;
+		loop i over:night_activities{
+			add i::0 to:class_counter;
+		}
+		list<economic_unit> my_tmp_activities <- economic_unit where(each.sub_id in night_activities);
+		if not empty(my_tmp_activities){
+			loop act over:my_tmp_activities{
+				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
+			}
+		}
+		int total_activities <- sum(class_counter.values);
+		if total_activities=0{
+			result <- 0.0;
+		}
+		else{
+			result <- -1*sum(class_counter.values collect((each/total_activities)*(each<=0?0:ln(each/total_activities))));	
+		}
+		/*ask base_grid{do compute_diversity_night;}
 		result <- mean(base_grid where(each.night_diversity>0) collect(each.night_diversity)) ;
-		write result;
+		write result;*/
 		return result;
 	}
 	
 	float mean_diversity_knowledge{
 		float result;
+		
+		map<string,int> class_counter;
+		loop i over:knowledge_activities{
+			add i::0 to:class_counter;
+		}
+		list<economic_unit> my_tmp_activities <- economic_unit where(each.sub_id in knowledge_activities);
+		if not empty(my_tmp_activities){
+			loop act over:my_tmp_activities{
+				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
+			}
+		}
+		int total_activities <- sum(class_counter.values);
+		if total_activities=0{
+			result <- 0.0;
+		}
+		else{
+			result <- -1*sum(class_counter.values collect((each/total_activities)*(each<=0?0:ln(each/total_activities))));	
+		}
+		
+		/*
 		ask base_grid{do compute_diversity_knowledge;}
 		result <- mean(base_grid where(each.knowledge_diversity>0) collect(each.knowledge_diversity)) ;
 		write result;
+		*/
 		return result;
 	}
 	
 	float mean_diversity_interaction{
 		float result;
+		
+		map<string,int> class_counter;
+		loop i over:interaction_places{
+			add i::0 to:class_counter;
+		}
+		list<economic_unit> my_tmp_activities <- economic_unit where(each.sub_id in interaction_places);
+		if not empty(my_tmp_activities){
+			loop act over:my_tmp_activities{
+				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
+			}
+		}
+		int total_activities <- sum(class_counter.values);
+		if total_activities=0{
+			result <- 0.0;
+		}
+		else{
+			result <- -1*sum(class_counter.values collect((each/total_activities)*(each<=0?0:ln(each/total_activities))));	
+		}
+		
+		/*
 		ask base_grid{do compute_diversity_interaction;}
 		result <- mean(base_grid where(each.interaction_diversity>0) collect(each.interaction_diversity)) ;
-		write result;
+		write result;*/
+		
 		return result;
 	}
 	
 	float mean_density_day{
 		float result;
-		result <- mean(base_grid where(each.day_density>0) collect(each.day_density)) ;
-		write result;
+		list<economic_unit> tmp_units <- economic_unit where(each.sub_id in day_activities);
+		result <- length(economic_unit)>0?length(tmp_units)/length(economic_unit):0;
+		/*result <- mean(base_grid where(each.day_density>0) collect(each.day_density)) ;
+		write result;*/
 		return result;
 	}
 	float mean_density_night{
 		float result;
-		result <- mean(base_grid where(each.night_density>0) collect(each.night_density)) ;
-		write result;
+		list<economic_unit> tmp_units <- economic_unit where(each.sub_id in night_activities);
+		result <- length(economic_unit)>0?length(tmp_units)/length(economic_unit):0;
+		/*result <- mean(base_grid where(each.night_density>0) collect(each.night_density)) ;
+		write result;*/
 		return result;
 	}
 	float mean_density_knowledge{
 		float result;
-		result <- mean(base_grid where(each.knowledge_density>0) collect(each.knowledge_density)) ;
-		write result;
+		list<economic_unit> tmp_units <- economic_unit where(each.sub_id in knowledge_activities);
+		result <- length(economic_unit)>0?length(tmp_units)/length(economic_unit):0;
+		/*result <- mean(base_grid where(each.knowledge_density>0) collect(each.knowledge_density)) ;
+		write result;*/
 		return result;
 	}
 	float mean_density_interactions{
 		float result;
-		result <- mean(base_grid where(each.interaction_density>0) collect(each.interaction_density)) ;
-		write result;
+		list<economic_unit> tmp_units <- economic_unit where(each.sub_id in interaction_places);
+		result <- length(economic_unit)>0?length(tmp_units)/length(economic_unit):0;
+		/*result <- mean(base_grid where(each.interaction_density>0) collect(each.interaction_density)) ;
+		write result;*/
 		return result;
 	}
 	
@@ -790,40 +846,27 @@ global skills:[network]{
 	//Functions built to update heatmap values according to the input from the user
 	//Currently it is under development. We are looking to use fields and mesh to show heatmaps (gama 1.8.2).
 	//Currently we use "from_scenario" variable to distiguish the source of data
-	
-	
-	//action select_scenario_1{scenario <- 1;}
-	//action select_scenario_2{scenario <- 2;}
-	
-	action heatmap2polution{
-		dynamic_hp <- "polution";
-	}
 
-	reflex update_polution_heatmap when:dynamic_hp !="" and flip(0.2){
-		//ask ccu_heatmap{grid_value <- 0.0;}
-		ask ref_grid{
-			//polution <- 0.0;
-			float cars_activity <- length(people where(each.mobility_type="Automóvil propio" and each.currently_moving) inside self)/5;
-			polution <- polution+(length(people where(each.mobility_type="Automóvil propio" and each.currently_moving) inside self)/5);
-			if cars_activity = 0{
-				polution <- polution - 0.1;
-			}
-		}
-		ask ccu_heatmap{
-			grid_value <- first(ref_grid closest_to self).polution;
-		}
-		if flip(0.005){
-			do spread_value(spread_value_factor);
-		}
-	}
 	action heatmap2education{
-		dynamic_hp <- "";
+		current_heatmap <- "education";
 		ask ccu_heatmap{grid_value <- 0.0;}
 		
 		//Radar values
-		
+		ask current_active_blocks inside (first(ccu_limit+1000)){
+			nb_different_education_equipment <- 0;
+			loop class over:education_distances.keys{
+				list<equipment> tmp_list <- education_facilities where(each.subtype = class) at_distance(education_distances[class]);
+				nb_different_education_equipment <- empty(tmp_list)?nb_different_education_equipment:nb_different_education_equipment+1;
+			}
+			ind_proximity_2_education_equipment <- nb_different_education_equipment > min_education_equipment;
+			ask people where(each.home_block=self){
+				ind_education_equipment_proximity <- myself.ind_proximity_2_education_equipment;
+			}
+			//int scenario_index <- scenario = 1?0:1;
+			//dash_educational_equipment_proximity[scenario_index] <- length(people where(each.from_scenario=scenario and each.ind_education_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
+		}
 		//write length(people where(each.from_scenario=scenario and each.ind_education_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
-		ask blocks{
+		ask current_active_blocks{
 			if length(people where(each.home_block=self)) = 0{
 				education_proximity <- 0.0;
 			}
@@ -855,11 +898,11 @@ global skills:[network]{
 		do spread_value(spread_value_factor);
 	}
 	action heatmap2culture{
-		dynamic_hp <- "";
+		current_heatmap <- "culture";
 		ask ccu_heatmap{grid_value <- 0.0;}
 		
 		//Radar values
-		ask current_active_blocks inside (first(ccu_limit)){
+		ask current_active_blocks{//} inside (first(ccu_limit)){
 			nb_different_cultural_equipment <- 0;
 			loop class over:culture_distances.keys{
 				list<equipment> tmp_list <- culture_facilities where(each.subtype = class) at_distance(culture_distances[class]);
@@ -879,7 +922,7 @@ global skills:[network]{
 		
 		//Heatmap values
 		ask ccu_heatmap{grid_value <- 0.0;}
-		ask blocks{
+		ask current_active_blocks{
 			if length(people where(each.home_block=self)) = 0{
 				culture_proximity <- 0.0;
 			}
@@ -893,7 +936,7 @@ global skills:[network]{
 			list<heatmap> the_cells;
 			list<blocks> my_blocks <- current_active_blocks overlapping self;
 			ask my_blocks{
-				the_cells <- ccu_heatmap overlapping self;	
+				the_cells <- ccu_heatmap overlapping self;
 				ask the_cells{grid_value <- mean(my_blocks collect(each.culture_proximity));}
 			}
 		}
@@ -911,7 +954,7 @@ global skills:[network]{
 	}
 	
 	action heatmap2health{
-		dynamic_hp <- "";
+		current_heatmap <- "health";
 		//Radar values
 		ask current_active_blocks inside (first(ccu_limit)){
 			nb_different_health_equipment <- 0;
@@ -932,7 +975,7 @@ global skills:[network]{
 		
 		//Heatmap values
 		ask ccu_heatmap{grid_value <- 0.0;}
-		ask blocks{
+		ask current_active_blocks{
 			if length(people where(each.home_block=self)) = 0{
 				health_proximity <- 0.0;
 			}
@@ -965,7 +1008,7 @@ global skills:[network]{
 	}
 	
 	action heatmap2sports{
-		dynamic_hp <- "";
+		current_heatmap <- "sports";
 		//Radar values
 		ask current_active_blocks inside (first(ccu_limit)){
 			nb_different_sports_equipment <- 0;
@@ -1001,7 +1044,7 @@ global skills:[network]{
 	
 	
 	action heatmap2mobility{
-		dynamic_hp <- "";
+		current_heatmap <- "mobility";
 		ask ccu_heatmap{grid_value <- 0.0;}
 		ask blocks{
 			list<people> my_people <- people where(each.home_block=self);
@@ -1022,9 +1065,10 @@ global skills:[network]{
 	
 	//------------ HEATMAP SHOWS DIVERSITY
 	action heatmap2daydiv{
-		dynamic_hp <- "";
+		current_heatmap <- "day_diversity";
 		ask ccu_heatmap{grid_value <- 0.0;}
 		ask ref_grid{
+			do compute_diversity_day;
 			ask heatmap inside(self){
 				grid_value <- myself.day_diversity;
 			}
@@ -1033,9 +1077,10 @@ global skills:[network]{
 	}
 	
 	action heatmap2nightdiv{
-		dynamic_hp <- "";
+		current_heatmap <- "night_diversity";
 		ask ccu_heatmap{grid_value <- 0.0;}
 		ask ref_grid{
+			do compute_diversity_night;
 			ask heatmap inside(self){
 				grid_value <- myself.night_diversity;
 			}
@@ -1044,9 +1089,10 @@ global skills:[network]{
 	}
 	
 	action heatmap2knowdiv{
-		dynamic_hp <- "";
+		current_heatmap <- "knowledge_diversity";
 		ask ccu_heatmap{grid_value <- 0.0;}
 		ask ref_grid{
+			do compute_diversity_night;
 			ask heatmap inside(self){
 				grid_value <- myself.knowledge_diversity;
 			}
@@ -1055,6 +1101,51 @@ global skills:[network]{
 	}
 	
 	
+	//------------ HEATMAP SHOWS DENSITY
+	action heatmap2daydensity{
+		current_heatmap <- "day_density";
+		ask ccu_heatmap{grid_value <- 0.0;}
+		ask ref_grid{
+			do compute_density_day;
+			ask heatmap inside(self){
+				grid_value <- myself.day_density;
+			}
+		}
+		do spread_value(spread_value_factor);
+	}
+	action heatmap2nightdensity{
+		current_heatmap <- "night_density";
+		ask ccu_heatmap{grid_value <- 0.0;}
+		ask ref_grid{
+			do compute_density_night;
+			ask heatmap inside(self){
+				grid_value <- myself.night_density;
+			}
+		}
+		do spread_value(spread_value_factor);
+	}
+	action heatmap2knowledgedensity{
+		current_heatmap <- "knowledge_density";
+		ask ccu_heatmap{grid_value <- 0.0;}
+		ask ref_grid{
+			do compute_density_knowledge;
+			ask heatmap inside(self){
+				grid_value <- myself.knowledge_density;
+			}
+		}
+		do spread_value(spread_value_factor);
+	}
+	action heatmap2interactiondensity{
+		current_heatmap <- "interaction_density";
+		ask ccu_heatmap{grid_value <- 0.0;}
+		ask ref_grid{
+			do compute_density_interaction;
+			ask heatmap inside(self){
+				grid_value <- myself.interaction_density;
+			}
+		}
+		do spread_value(spread_value_factor);
+	}
 	//-------------------------------------------
 	//This function spread_value is a basic function to spread the grid value through the cells, causing the heatmap to appear smoother in the visualization.  
 	action spread_value(int it){
@@ -1077,7 +1168,7 @@ global skills:[network]{
 				if tmp != nil{add tmp to:my_nb;}
 				tmp <- heatmap[grid_x+1,grid_y-1];
 				if tmp != nil{add tmp to:my_nb;}
-				grid_value <- grid_value*spread_factor + mean(my_nb  collect(each.grid_value))*(1-spread_factor);
+				grid_value <- grid_value*spread_factor + mean(my_nb where(not dead(each))  collect(each.grid_value))*(1-spread_factor);
 				if grid_value < 0.25{grid_value <- grid_value * 1.20;}
 				else if grid_value < 0.5{grid_value <- grid_value * 1.10;}
 				else if grid_value < 0.75{grid_value <- grid_value * 1.05;}
@@ -1092,12 +1183,10 @@ global skills:[network]{
 //------------------ HEATMAP CELLS ------------------------------------------
 grid heatmap width:world.shape.width/15 height:world.shape.height/15{
 	rgb my_color <- rgb(0,0,0,0);
-	float polution_value <- 0.0;
 	bool valid <- true;
 	aspect default{
 		draw shape wireframe:true border:#red;
 	}
-	
 	aspect heat{
 		//draw shape color:rgb((1-grid_value)*255,grid_value*255,100,0.7);
 		if show_heatmap{
@@ -1224,43 +1313,45 @@ species intervention_area{
 	list<project> associated_projects;
 	action activate_scenario(int new_scenario){
 		if active_scenario != new_scenario{
-			scenario_changed <- true;
-			allow_export_current_data <- true;
+			
 			write area_name+": changing scenario "+active_scenario+" to "+new_scenario;
-			ask associated_projects where(each.from_scenario=active_scenario){
-				do deactivate;
-			}
-			ask associated_projects where(each.from_scenario=new_scenario){
-				do activate;
-			}
-			ask blocks_by_scenario[active_scenario-1]{
-				ask people where(each.from_scenario=myself.active_scenario and each.home_block=self){
-					do die;
+			try{
+				
+				ask associated_projects where(each.from_scenario=active_scenario){
+					do deactivate;
 				}
-				write "removing "+self.id+" from active blocks";
-				remove self from:current_active_blocks;
-			}
-			
-			ask blocks_by_scenario[new_scenario-1]{
-				add self to:current_active_blocks;
-				create people number:self.nb_people/7 with:[
-					target_block::one_of(blocks-self),
-					from_scenario::new_scenario
-				]{
-					home_block <- myself;
-					location <- any_location_in(home_block);
-					mobility_type <- select_mobility_mode();
-					do compute_mobility_accessibility();
+				ask associated_projects where(each.from_scenario=new_scenario){
+					do activate;
+				}
+				ask blocks_by_scenario[active_scenario-1]{
+					ask people where(each.from_scenario=myself.active_scenario and each.home_block=self){
+						to_be_killed <- true;
+					}
+					write "removing "+self.id+" from active blocks";
+					remove self from:current_active_blocks;
+				}
+				
+				ask blocks_by_scenario[new_scenario-1]{
+					add self to:current_active_blocks;
+					create people number:self.nb_people/7 with:[
+						target_block::one_of(blocks-self),
+						from_scenario::new_scenario
+					]{
+						home_block <- myself;
+						location <- any_location_in(home_block);
+						mobility_type <- select_mobility_mode();
+						do compute_mobility_accessibility();
+					}
 				}
 			}
-			
-			
+			scenario_changed <- true;
 			active_scenario <- new_scenario;
 		}
 		
 	}
 	aspect default{
 		draw shape wireframe:true border:#yellow;
+		draw area_name+string(active_scenario) color:#white font:font("Helvetica", 30 , #bold)at:{location.x,location.y,20};
 	}
 }
 //***********************************************************
@@ -1323,7 +1414,6 @@ species base_grid{
 	float knowledge_density;
 	float interaction_density;
 	float social_interactions;
-	float polution;
 	
 	list<economic_unit> activities_inside;
 	list<economic_unit> my_tmp_activities;
@@ -1336,7 +1426,7 @@ species base_grid{
 			add i::0 to:class_counter;
 		}
 		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in day_activities);
-		day_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
+		//day_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
 		if not empty(my_tmp_activities){
 			loop act over:my_tmp_activities{
 				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
@@ -1359,7 +1449,7 @@ species base_grid{
 			add i::0 to:class_counter;
 		}
 		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in night_activities);
-		night_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
+		//night_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
 		if not empty(my_tmp_activities){
 			loop act over:my_tmp_activities{
 				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
@@ -1380,7 +1470,7 @@ species base_grid{
 			add i::0 to:class_counter;
 		}
 		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in knowledge_activities);
-		knowledge_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
+		//knowledge_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
 		if not empty(my_tmp_activities){
 			loop act over:my_tmp_activities{
 				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
@@ -1401,7 +1491,7 @@ species base_grid{
 			add i::0 to:class_counter;
 		}
 		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in interaction_places);
-		interaction_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
+		//interaction_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
 		if not empty(my_tmp_activities){
 			loop act over:my_tmp_activities{
 				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
@@ -1415,8 +1505,25 @@ species base_grid{
 			interaction_diversity <- -1*sum(class_counter.values collect((each/total_activities)*(each<=0?0:ln(each/total_activities))));	
 		}
 	}
-	aspect default{
-		draw shape border:#red color:rgb(200,20,20,day_diversity/max_diversity);
+	action compute_density_day{
+		activities_inside <- economic_unit inside self;
+		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in day_activities);
+		day_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
+	}
+	action compute_density_night{
+		activities_inside <- economic_unit inside self;
+		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in night_activities);
+		night_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
+	}
+	action compute_density_knowledge{
+		activities_inside <- economic_unit inside self;
+		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in knowledge_activities);
+		knowledge_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
+	}
+	action compute_density_interaction{
+		activities_inside <- economic_unit inside self;
+		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in interaction_places);
+		interaction_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
 	}
 }
 
@@ -1512,7 +1619,7 @@ species blocks{
 	}
 	
 	aspect default{
-		if self in current_active_blocks{
+		if self in current_active_blocks and not show_satellite{
 			draw shape color:rgb(100,100,100,0.2) border:#blue width:5.0;
 		}
 		//draw shape wireframe:false color:valid?#green:#red;// border:#blue;
@@ -1562,6 +1669,7 @@ species people skills:[moving]{
 	
 	//Variables related to scenarios
 	int from_scenario;
+	bool to_be_killed <- false;
 	
 	//Related to mobility
 	blocks home_block;
@@ -1579,20 +1687,22 @@ species people skills:[moving]{
 	action compute_mobility_accessibility{
 		int transport_accessibilty_count <- 0;
 		list<float> distances <- [];
-		transport_station closest_station <- transport_station where(each.type="bus") closest_to self;
-		add closest_station distance_to self to:distances;
-		closest_station <- transport_station where(each.type="massive" and each.subtype="BRT (Bus Rapid Transit)") closest_to self;
-		add closest_station distance_to self to:distances;
-		closest_station <- transport_station where(each.type="massive" and each.subtype="Tren Eléctrico") closest_to self;
-		add closest_station distance_to self to:distances;
-		cycling_way closest_cycling_way <- cycling_way closest_to self;
-		add closest_station distance_to self to:distances;
-		if distances[0] < 300{transport_accessibilty_count <- transport_accessibilty_count + 1;} 
-		if distances[1] < 500{transport_accessibilty_count <- transport_accessibilty_count + 1;}
-		if distances[2] < 800{transport_accessibilty_count <- transport_accessibilty_count + 1;}
-		if distances[3] < 300{transport_accessibilty_count <- transport_accessibilty_count + 1;}
-		mobility_accessibility <- transport_accessibilty_count /4;
-		ind_public_transport_coverage <- transport_accessibilty_count >=3;
+		try{
+			transport_station closest_station <- transport_station where(each.type="bus") closest_to self;
+			add closest_station distance_to self to:distances;
+			closest_station <- transport_station where(each.type="massive" and each.subtype="BRT (Bus Rapid Transit)") closest_to self;
+			add closest_station distance_to self to:distances;
+			closest_station <- transport_station where(each.type="massive" and each.subtype="Tren Eléctrico") closest_to self;
+			add closest_station distance_to self to:distances;
+			cycling_way closest_cycling_way <- cycling_way closest_to self;
+			add closest_station distance_to self to:distances;
+			if distances[0] < 300{transport_accessibilty_count <- transport_accessibilty_count + 1;} 
+			if distances[1] < 500{transport_accessibilty_count <- transport_accessibilty_count + 1;}
+			if distances[2] < 800{transport_accessibilty_count <- transport_accessibilty_count + 1;}
+			if distances[3] < 300{transport_accessibilty_count <- transport_accessibilty_count + 1;}
+			mobility_accessibility <- transport_accessibilty_count /4;
+			ind_public_transport_coverage <- transport_accessibilty_count >=3;
+		}
 	}
 
 	//This action is used to select the mobility type for this agent
@@ -1636,7 +1746,9 @@ species people skills:[moving]{
 			add my_path[length(my_path)-1-i] to:new_path;
 		}
 	}
-	
+	reflex kill_agent when: to_be_killed{
+		do die;
+	}
 	//This reflex controls the agent's activities to do during the day
 	reflex update_agenda when: (every(#day)) or empty(agenda_day){
 		agenda_day <- [];
@@ -1694,7 +1806,7 @@ species grid_paths{
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment CCU_1_1000 type:gui{
 	output{
-		display gui fullscreen:2 type:opengl background:#black axes:false{
+		display gui type:opengl background:#black axes:false fullscreen:0{
 			 //BEST CALIBRATED CAMERAS
 			
 			// camera 'default' location: {1482.4217,1625.375,1913.8429} target: {1482.8714,1623.9457,0.0}; //ROTADA WORKING FIRST LIMITS
@@ -1720,27 +1832,31 @@ experiment CCU_1_1000 type:gui{
 			species satellite_background aspect:default refresh:true;
 			species ccu_limit aspect:default refresh:true;
 			species blocks aspect:default;
-			species intervention_area aspect:default;
 			species economic_unit aspect:default;
 			species people aspect:default;
 			species car aspect:default;
 			species heatmap aspect:heat;
+			species intervention_area aspect:default;
 			
 			//Keyboard events
-			//event a action:select_scenario_1;
-			//event b action:select_scenario_2;
 			event h {show_heatmap <- !show_heatmap;} //Heatmap display
 			event s action:heatmap2health;
 			event e action:heatmap2education;
 			event c action:heatmap2culture;
-			
 			event x action:heatmap2sports;
 			event d action:heatmap2daydiv;
 			event n action:heatmap2nightdiv;
 			event w action:heatmap2knowdiv;
+			
+			event u action:heatmap2daydensity;
+			event i action:heatmap2nightdensity;
+			event o action:heatmap2knowledgedensity;
+			event p action:heatmap2interactiondensity;
+			
 			event m action:heatmap2mobility;
-			event p action:heatmap2polution;
 			event q action:show_satellite_action;
+			event t action:activate_scenario1;
+			event y action:activate_scenario2;
 		}
 	}
 }
