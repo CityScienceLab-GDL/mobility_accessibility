@@ -1,5 +1,6 @@
 import serial
 import paho.mqtt.client as paho
+import time
 
 broker="localhost"
 port=1883
@@ -17,13 +18,12 @@ def on_message(client, userdata, message):
 	print('qos: %d' % message.qos)
 
 # Editar
-ser = serial.Serial('COM7', 9800, timeout=1) # Cambiar por COM en el que se conecta el arduino
+ser = serial.Serial('/dev/cu.usbserial-1452440', 9800, timeout=1) # Cambiar por COM en el que se conecta el arduino
 ser.flushInput()
 
 client= paho.Client("table_client")                           #create client object
 client.on_publish = on_publish                          #assign function to callback
 client.on_message = on_message
-client.connect(broker,port) 
 
 while True:
     try:
@@ -36,11 +36,15 @@ while True:
                 polygon = msg_parts[0]
                 project = msg_parts[1]
                 if status[polygon] != project:
+                    client.connect(broker,port) 
                     print("Nuevo proyecto '{}' para poligono '{}'".format(polygon, project))
                     status[polygon] = project
                     msg_body = "A/{},B/{},K/{},I/{},L/{}".format(status["A"], status["B"], \
                                                 status["K"], status["I"], status["L"])
                     ret= client.publish("cityscope_table", msg_body) 
+                    print(ret)
+                    time.sleep(3)
+                    client.disconnect()
     except:
         print("Keyboard Interrupt")
         break
