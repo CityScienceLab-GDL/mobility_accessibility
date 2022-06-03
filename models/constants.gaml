@@ -177,13 +177,14 @@ global{
 	//New version
 	
 	int spread_value_factor <- 10;
-	float spread_factor <- 0.2;
+	float spread_factor <- 0.5;
 	map<string,int> education_distances <- ["Preescolar"::500,"Primaria"::750,"Secundaria"::1000,"Bachillerato"::5000,"Licenciatura"::10000];
 	map<string,int> culture_distances <- ["Auditorio Estatal"::10000,"Auditorio Municipal"::2340,"Biblioteca Municipal"::1500,"Casa de la Cultura"::10000,"Escuela Integral de Artes"::10000,"Museo Local"::10000,"Teatro"::10000,"Biblioteca pública estatal"::10000];
 	map<string,int> health_distances <- ["Centro de Sallud Urbano (SSA)"::1000,"Clínica Hospitall"::10000,"Consultorio Privadol"::1000,"Hospital Privado"::10000,"Hospital General"::10000,"Hospital General (SSA)l"::10000,"Laboratorio"::10000,"Unidad de Medicina Familiar"::5000,"Unidad de Medicina Familiar (IMSS)"::5000];
 	map<string,int> sports_distances <- ["Equipamiento deportivo"::1000];
 	
 	
-	//Variables related to events that happen within the polygon
+	//Variables related to heatmap
+	map<string,list<string>> heatmap_names <- ["facilities"::["health","culture","education","sports"],"population/housing"::["population_density","mobility"],"activities_density"::["day_density","night_density","knowledge_density","interaction_density"],"activities_diversity"::["day_diversity","night_diversity","knowledge_diversity"]];
 	
 }

@@ -88,6 +88,7 @@ global skills:[network]{
 	list<string> night_activities;
 	list<string> interaction_places;
 	list<string> knowledge_activities;
+	map<string,int> current_scenarios;
 	
 	//Indicators variables that are going to be sent to the dashboard
 	bool allow_export_data <- false;
@@ -155,7 +156,8 @@ global skills:[network]{
 		create blocks from:s1_blocks_shp with:[id::read("ID_BLOCK"),from_scenario::1,nb_people::int(read("POB1")),block_area::float(read("area_m2")),viv_type::read("TIPO_VIVIE")]{
 			create people number:int(nb_people/5) with:[home_block::self,target_block::one_of(blocks-self)]{
 				from_scenario <- 1;
-				location <- any_location_in(home_block);
+				home_point <- any_location_in(home_block);
+				location <- home_point;
 				mobility_type <- select_mobility_mode();
 			}
 		}
@@ -260,6 +262,8 @@ global skills:[network]{
 		
 		//Create intervention areas
 		create intervention_area from:intervention_areas_shp with:[active_scenario::1,id::read("fid"),area_name::read("nombre"),associated_projects_str::read("id_ccu"), blocksS1_str::read("ID_BLOCK_E"),blocksS2_str::read("ID_BLOCK_1"),blocksS3_str::read("ID_BLOCK_2")]{
+			//First, add the current intervention_area name to the map
+			add self.area_name::1 to:current_scenarios;
 			//Lets associate each area to a project in the projects data base created just before
 			list<string> valid_project_ids <- project collect(each.id);
 			write area_name+ " AP: "+associated_projects_str;
@@ -331,7 +335,7 @@ global skills:[network]{
 		list<people>valid_people;
 		list<economic_unit> valid_unit;
 		ask ccu_limit{
-			ccu_heatmap 				<- heatmap inside(self);
+			ccu_heatmap 				<- heatmap inside(self+50);
 			ref_grid					<- base_grid inside(self +100);
 			valid_people <- people inside self;
 			valid_unit <- economic_unit inside self;
@@ -366,6 +370,7 @@ global skills:[network]{
 			match "night_density"{do heatmap2nightdensity;}
 			match "knowledge_density"{do heatmap2knowledgedensity;}
 			match "interaction_density"{do heatmap2interactiondensity;}
+			match "population_density"{do heatmap2populationdensity;}
 			match "mobility" {do heatmap2mobility;}
 		}
 		scenario_changed <- false;
@@ -381,6 +386,7 @@ global skills:[network]{
 		loop w over: words{
 			list<string> letters <- split_with(w,"/");
 			write "Activating polygon: "+letters[0]+", scenario: "+letters[1];
+			current_scenarios[letters[0]] <- int(letters[1]);
 			ask intervention_area where(each.area_name=letters[0]){
 				do activate_scenario(int(letters[1]));
 			}
@@ -466,13 +472,13 @@ global skills:[network]{
 	}
 	reflex export_data_sc2 when:allow_export_data_sc2{
 		//Scenario 2
-		do heatmap2education;
+		/*do heatmap2education;
 		do heatmap2culture;
 		do heatmap2health;
 		do mean_density_day;
 		do mean_density_night;
 		do mean_density_knowledge;
-		do mean_density_interactions;
+		do mean_density_interactions;*/
 		dash_day_activities_diversity[1] <- mean_diversity_day()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.day_diversity));
 		dash_night_activities_diversity[1] <- mean_diversity_night()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.night_diversity));
 		dash_knowledge_activities_diversity[1] <- mean_diversity_knowledge()/max_diversity;//mean(ref_grid where(each.from_scenario=1) collect(each.knowledge_diversity));
@@ -866,7 +872,7 @@ global skills:[network]{
 			//dash_educational_equipment_proximity[scenario_index] <- length(people where(each.from_scenario=scenario and each.ind_education_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
 		}
 		//write length(people where(each.from_scenario=scenario and each.ind_education_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
-		ask current_active_blocks{
+		/*ask current_active_blocks{
 			if length(people where(each.home_block=self)) = 0{
 				education_proximity <- 0.0;
 			}
@@ -883,8 +889,8 @@ global skills:[network]{
 				the_cells <- ccu_heatmap overlapping self;
 				ask the_cells{grid_value <- mean(my_blocks collect(each.education_proximity));}
 			}
-		}
-		/*ask education_facilities {
+		}*/
+		ask education_facilities {
 			//Here we obtain the shape of the block in order to update the grid values related to it
 			blocks the_block <- current_active_blocks closest_to self;
 			list<heatmap> the_cells;
@@ -894,7 +900,7 @@ global skills:[network]{
 					grid_value <- 1.0;
 				}
 			}
-		}*/
+		}
 		do spread_value(spread_value_factor);
 	}
 	action heatmap2culture{
@@ -921,7 +927,7 @@ global skills:[network]{
 		
 		
 		//Heatmap values
-		ask ccu_heatmap{grid_value <- 0.0;}
+		/*ask ccu_heatmap{grid_value <- 0.0;}
 		ask current_active_blocks{
 			if length(people where(each.home_block=self)) = 0{
 				culture_proximity <- 0.0;
@@ -939,8 +945,8 @@ global skills:[network]{
 				the_cells <- ccu_heatmap overlapping self;
 				ask the_cells{grid_value <- mean(my_blocks collect(each.culture_proximity));}
 			}
-		}
-		/*ask culture_facilities{
+		}*/
+		ask culture_facilities{
 			blocks the_block <- current_active_blocks closest_to self;
 			list<heatmap> the_cells;
 			ask the_block{
@@ -949,7 +955,7 @@ global skills:[network]{
 					grid_value <- 1.0;
 				}
 			}		
-		}*/
+		}
 		do spread_value(spread_value_factor);
 	}
 	
@@ -974,7 +980,7 @@ global skills:[network]{
 		//write length(people where(each.from_scenario=scenario and each.ind_health_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
 		
 		//Heatmap values
-		ask ccu_heatmap{grid_value <- 0.0;}
+		/*ask ccu_heatmap{grid_value <- 0.0;}
 		ask current_active_blocks{
 			if length(people where(each.home_block=self)) = 0{
 				health_proximity <- 0.0;
@@ -993,8 +999,8 @@ global skills:[network]{
 				ask the_cells{grid_value <- mean(my_blocks collect(each.health_proximity));}
 			}
 		}
-		
-		/*ask health_facilities{
+		*/
+		ask health_facilities{
 		 	blocks the_block <- current_active_blocks closest_to self;
 			list<heatmap> the_cells;
 			ask the_block{
@@ -1003,7 +1009,7 @@ global skills:[network]{
 					grid_value <- 1.0;
 				}
 			}		
-		}*/
+		}
 		do spread_value(spread_value_factor);
 	}
 	
@@ -1102,6 +1108,21 @@ global skills:[network]{
 	
 	
 	//------------ HEATMAP SHOWS DENSITY
+	
+	action heatmap2populationdensity{
+		current_heatmap <- "population_density";
+		ask ccu_heatmap{grid_value <- 0.0;}
+		ask ref_grid{
+			do compute_population_living_inside;
+		}
+		int max_population_living_in_grid <- max(ref_grid collect(each.people_living_inside));
+		ask ref_grid{
+			ask heatmap inside(self){
+				grid_value <- myself.people_living_inside/max_population_living_in_grid;
+			}
+		}
+		do spread_value(spread_value_factor);
+	}	
 	action heatmap2daydensity{
 		current_heatmap <- "day_density";
 		ask ccu_heatmap{grid_value <- 0.0;}
@@ -1190,13 +1211,29 @@ grid heatmap width:world.shape.width/15 height:world.shape.height/15{
 	aspect heat{
 		//draw shape color:rgb((1-grid_value)*255,grid_value*255,100,0.7);
 		if show_heatmap{
-			do update_color;
+			my_color <- update_color_new(current_heatmap);
 			float intensity <- grid_value=0?0.1:grid_value;
 			intensity <- grid_value>0.65?0.65:grid_value;
 			draw shape color:rgb(my_color,grid_value=1?1.2:intensity);// border:rgb(my_color,grid_value=0?0.1:intensity);
-		}
-		
+		}	
 	}
+	
+	rgb update_color_new(string current_hm){
+		rgb result;
+		string my_class <- "default";
+		loop i over:heatmap_names.keys{
+			if current_hm in heatmap_names[i]{my_class <- i;}
+		}
+		switch(my_class){
+			match "population/housing"{result <- rgb(242-int(grid_value*127), 226-int(grid_value*224),5-int(grid_value*3));}
+			match "facilities"{result <- rgb(234-int(grid_value*229), 236-int(grid_value*229), 255-int(grid_value*100));}
+			match "activities_density"{result <- rgb(255-int(grid_value*23), 232-int(grid_value*151), 249-int(grid_value*140));}
+			match "activities_diversity"{result <- rgb(255-(255*grid_value), 40+(190*grid_value),0);}
+			match "default"{result <- rgb(214-int(grid_value*160), 217-int(grid_value*160), 193-int(grid_value*168));}
+		}
+		return result;
+	}
+	
 	action update_color{
 		rgb result <- rgb(255,255,255);
 		if(grid_value<0.20){
@@ -1258,7 +1295,8 @@ species project{
 		create people number:my_block.nb_people/5 returns:new_people;
 		ask new_people{
 			from_scenario <- myself.from_scenario;
-			location <- any_location_in(my_block);
+			home_point <- any_location_in(my_block);
+			location <- home_point;
 			home_block <- my_block;
 		}
 		add my_block to:current_active_blocks;
@@ -1338,7 +1376,8 @@ species intervention_area{
 						from_scenario::new_scenario
 					]{
 						home_block <- myself;
-						location <- any_location_in(home_block);
+						home_point <- any_location_in(home_block);
+						location <- home_point;
 						mobility_type <- select_mobility_mode();
 						do compute_mobility_accessibility();
 					}
@@ -1415,6 +1454,8 @@ species base_grid{
 	float interaction_density;
 	float social_interactions;
 	
+	//Auxiliar variables
+	int people_living_inside;
 	list<economic_unit> activities_inside;
 	list<economic_unit> my_tmp_activities;
 	
@@ -1524,6 +1565,9 @@ species base_grid{
 		activities_inside <- economic_unit inside self;
 		my_tmp_activities <- economic_unit inside(self) where(each.sub_id in interaction_places);
 		interaction_density <- length(economic_unit inside (self))>0?length(my_tmp_activities)/length(economic_unit inside (self)):0;
+	}
+	action compute_population_living_inside{
+		people_living_inside <- length(people where(self covers each.home_point));
 	}
 }
 
@@ -1673,6 +1717,7 @@ species people skills:[moving]{
 	
 	//Related to mobility
 	blocks home_block;
+	point home_point;
 	blocks target_block;
 	point target_point;
 	path roads_path;
@@ -1806,7 +1851,7 @@ species grid_paths{
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment CCU_1_1000 type:gui{
 	output{
-		display gui type:opengl background:#black axes:false fullscreen:0{
+		display gui type:opengl background:#black axes:false{//} fullscreen:0{
 			 //BEST CALIBRATED CAMERAS
 			
 			// camera 'default' location: {1482.4217,1625.375,1913.8429} target: {1482.8714,1623.9457,0.0}; //ROTADA WORKING FIRST LIMITS
@@ -1852,6 +1897,7 @@ experiment CCU_1_1000 type:gui{
 			event i action:heatmap2nightdensity;
 			event o action:heatmap2knowledgedensity;
 			event p action:heatmap2interactiondensity;
+			event l action:heatmap2populationdensity;
 			
 			event m action:heatmap2mobility;
 			event q action:show_satellite_action;
