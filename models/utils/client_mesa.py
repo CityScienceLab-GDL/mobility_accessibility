@@ -18,7 +18,7 @@ def on_message(client, userdata, message):
 	print('qos: %d' % message.qos)
 
 # Editar
-ser = serial.Serial('/dev/cu.usbserial-1452440', 9800, timeout=1) # Cambiar por COM en el que se conecta el arduino
+ser = serial.Serial('COM8', 9800, timeout=1) # Cambiar por COM en el que se conecta el arduino
 ser.flushInput()
 
 client= paho.Client("table_client")                           #create client object
@@ -43,7 +43,7 @@ while True:
                                                 status["K"], status["I"], status["L"])
                     ret= client.publish("cityscope_table", msg_body) 
                     print(ret)
-                    time.sleep(3)
+                    time.sleep(6)
                     client.disconnect()
     except:
         print("Keyboard Interrupt")

@@ -150,16 +150,16 @@ global{
 	
 	//Edge values
 	
-	float max_diversity <- 1.0;
+	float max_diversity <- 6.0;
 	float max_transport_accessibility <- 1.0;
 	float max_hab_emp_ratio <- 20.0;
-	float max_density <- 1.0;
-	float max_energy_requirement <- 1.0;//7384.94;
-	float max_water_requirement <- 1.0;//886.0;
-	float max_waste_generation <- 1.0;//1.217;
-	float max_km_per_person <- 1.0;
+	float max_density <- 350.0;
+	float max_energy_requirement <- 7384.94;
+	float max_water_requirement <- 886.0;
+	float max_waste_generation <- 1.217;
+	float max_km_per_person <- 20.0;
 	float max_km_per_km2 <- 1.0;
-	float max_green_area_per_person <- 1.0;
+	float max_green_area_per_person <- 40.0;
 	int max_schools_near <- 4;
 	int max_hospitals_near <-4;
 	int max_culture_near <- 10;
