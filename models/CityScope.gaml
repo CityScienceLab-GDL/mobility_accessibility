@@ -405,6 +405,61 @@ global skills:[network]{
 			do activate_scenario(2);
 		}
 	}
+	action change_scenario_A{
+		ask intervention_area where(each.area_name="A"){
+			int tmp_sc <- self.active_scenario;
+			if tmp_sc=3{
+				tmp_sc <- 0;
+			}
+			tmp_sc <- tmp_sc + 1;
+			do activate_scenario(tmp_sc);
+		}
+		allow_export_data_sc2 <- true;
+	}
+	action change_scenario_B{
+		ask intervention_area where(each.area_name="B"){
+			int tmp_sc <- self.active_scenario;
+			if tmp_sc=3{
+				tmp_sc <- 0;
+			}
+			tmp_sc <- tmp_sc + 1;
+			do activate_scenario(tmp_sc);
+		}
+		allow_export_data_sc2 <- true;
+	}
+	action change_scenario_K{
+		ask intervention_area where(each.area_name="K"){
+			int tmp_sc <- self.active_scenario;
+			if tmp_sc=3{
+				tmp_sc <- 0;
+			}
+			tmp_sc <- tmp_sc + 1;
+			do activate_scenario(tmp_sc);
+		}
+		allow_export_data_sc2 <- true;
+	}
+	action change_scenario_L{
+		ask intervention_area where(each.area_name="L"){
+			int tmp_sc <- self.active_scenario;
+			if tmp_sc=3{
+				tmp_sc <- 0;
+			}
+			tmp_sc <- tmp_sc + 1;
+			do activate_scenario(tmp_sc);
+		}
+		allow_export_data_sc2 <- true;
+	}
+	action change_scenario_I{
+		ask intervention_area where(each.area_name="I"){
+			int tmp_sc <- self.active_scenario;
+			if tmp_sc=3{
+				tmp_sc <- 0;
+			}
+			tmp_sc <- tmp_sc + 1;
+			do activate_scenario(tmp_sc);
+		}
+		allow_export_data_sc2 <- true;
+	}
 	//This reflex is to produce cars flows for the mobility simulation
 	/*reflex generate_car_flows when:sum(event_location collect(each.capacity - each.current_people))>0{
 		ask entry_point{
@@ -1928,7 +1983,7 @@ species grid_paths{
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment CCU_1_1000 type:gui{
 	output{
-		display gui type:opengl background:#black axes:false{//} fullscreen:0{
+		display gui type:opengl background:#black axes:false{//} fullscreen:1{
 			 //BEST CALIBRATED CAMERAS
 			
 			// camera 'default' location: {1482.4217,1625.375,1913.8429} target: {1482.8714,1623.9457,0.0}; //ROTADA WORKING FIRST LIMITS
@@ -1980,6 +2035,13 @@ experiment CCU_1_1000 type:gui{
 			event q action:show_satellite_action;
 			event t action:activate_scenario1;
 			event y action:activate_scenario2;
+			
+			//Events to change scenario
+			event A action:change_scenario_A;
+			event B action:change_scenario_B;
+			event F action:change_scenario_K;
+			event I action:change_scenario_I;
+			event L action:change_scenario_L;
 		}
 	}
 }
