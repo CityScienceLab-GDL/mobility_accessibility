@@ -416,11 +416,41 @@ global skills:[network]{
 		list<string> words <-split_with(new_string,",");
 		loop w over: words{
 			list<string> letters <- split_with(w,"/");
-			write "Activating polygon: "+letters[0]+", scenario: "+letters[1];
-			current_scenarios[letters[0]] <- int(letters[1]);
-			ask intervention_area where(each.area_name=letters[0]){
-				do activate_scenario(int(letters[1]));
+			if letters[0] ="M"{ //The message indicates the heatmap to activate
+				write "Changing heatmap to "+letters[1];
+				string opt <- letters[1];
+				switch opt{
+					match "health" {do heatmap2health();}
+					match "education" {do heatmap2education();}
+					match "culture" {do heatmap2culture();}
+					match "sports" {do heatmap2sports();}
+					match "daydiv" {do heatmap2daydiv();}
+					match "nightdiv" {do heatmap2nightdiv();}
+					match "knowdiv" {do heatmap2knowdiv();}
+					match "daydensity" {do heatmap2daydensity();}
+					match "nightdensity" {do heatmap2nightdensity();}
+					match "knowledgedensity" {do heatmap2knowledgedensity();}
+					match "nightdiv" {do heatmap2nightdiv();}
+					match "interactiondensity" {do heatmap2interactiondensity();}
+					match "populationdensity" {do heatmap2populationdensity();}
+					match "householddensity" {do heatmap2householddensity();}
+					match "mobility" {do heatmap2mobility();}
+				}
 			}
+			else if letters[0] = "S"{//The message indicates to activate a full scenario
+				string opt <- letters[1];
+				switch opt{
+					match "Current"{do activate_scenario1();}
+					match "MasterPlan"{do activate_scenario2();}
+				}
+			}
+			else{
+				write "Activating polygon: "+letters[0]+", scenario: "+letters[1];
+				current_scenarios[letters[0]] <- int(letters[1]);
+				ask intervention_area where(each.area_name=letters[0]){
+					do activate_scenario(int(letters[1]));
+				}
+			}			
 		}
 		//allow_export_current_data <- true;
 	}
@@ -2146,7 +2176,8 @@ experiment CCU_1_1000 type:gui{
 			
 			
 			 //camera 'default' location: {1028.7383,671.4495,1740.1146} target: {1028.7431,671.4195,0.0};//26 de abril
-			 camera 'default' location: {1007.3931,681.2155,1668.1296} target: {1009.0202,671.3018,0.0};
+			 //camera 'default' location: {1007.3931,681.2155,1668.1296} target: {1009.0202,671.3018,0.0};
+			 camera 'default' location: {1007.3931,681.2155,1270.1296} target: {1009.0202,671.3018,0.0};
 			 
 			overlay size:{0,0} position:{0.1,0.1} transparency:0.5{
 				draw "abcdefghiíjklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.:0123456789" at: {0#px,0#px} color:rgb(0,0,0,0) font: font("Arial", 55, #bold);
