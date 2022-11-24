@@ -42,6 +42,7 @@ global skills:[network]{
 	
 	//Generic and unique list of elements
 	list<blocks> current_active_blocks;
+	list<household> current_active_households;
 	
 	//Scenario 1
 	file s1_roads_shp 				<- file(main_shp_path+"scenario1/roads.shp");
@@ -143,8 +144,8 @@ global skills:[network]{
 	init{
 		
 		//Simulation specific variables
-		step 					<- 2#seconds;
-		starting_date 	<- date("2022-5-17 06:00:00");
+		step 					<- 1#seconds;
+		starting_date 	<- date("2022-11-26 06:00:00");
 		
 		//Initialize MQTT connection
 		write "Initializing MQTT connection";
@@ -170,9 +171,20 @@ global skills:[network]{
 				location <- home_point;
 				mobility_type <- select_mobility_mode();
 			}
-			nb_households <- int(nb_people / mean_family_size);
+			create household number:nb_households with:[location::any_location_in(self),from_scenario::1] returns:tmp_my_households;
+			if tmp_my_households != nil{
+				ask tmp_my_households{
+					add self to:myself.my_households;
+				}
+				tmp_my_households <- [];
+			}
+			
+			//nb_households <- int(nb_people / mean_family_size);
 		}
+		
 		current_active_blocks <- list(blocks);
+		
+		
 		create economic_unit from:economic_activities_shp with:[from_scenario::1,activity_id::read("codigo_act"),sub_id::read("sec_sub")];
 		create equipment from:s1_equipment_shp with:[type::string(read("tipo_equip")),subtype::string(read("cat_sedeso")),from_scenario::1];
 		create green_area from:green_areas_shp with:[surface_area::float(read("area_m2"))];
@@ -182,7 +194,17 @@ global skills:[network]{
 		create blocks from:s2_blocks_shp with:[id::read("ID_BLOCK"),from_scenario::2,nb_people::int(read("POB1")),block_area::float(read("area_m2"))]{
 			block_area <- block_area * 10000; //This conversion needs to bee eliminated
 			nb_households <- int(nb_people / mean_family_size);
+			create household number:nb_households with:[location::any_location_in(self),from_scenario::2] returns:tmp_my_households;
+			if tmp_my_households != nil{
+				ask tmp_my_households{
+					add self to:myself.my_households;
+				}
+				tmp_my_households <- [];				
+			}
+
 		}
+		
+		list<household> raw_current_active_households <- list(household);
 		//create base_grid from:s2_grid_shp with:[night_diversity::float(read("ID_NOCHE")),day_diversity::float(read("ID_DIA")),knowledge_diversity::float(read("ID_CONOCIM")),from_scenario::2];
 		
 		//------------ Create environment agents from scenario Event
@@ -361,6 +383,7 @@ global skills:[network]{
 			ref_grid					<- base_grid inside(self +100);
 			valid_people <- people inside self;
 			valid_unit <- economic_unit inside self;
+			current_active_households <- raw_current_active_households inside self;
 		}
 		ask people{
 			if not (self in valid_people){to_be_killed <- true;}
@@ -371,6 +394,10 @@ global skills:[network]{
 		ask heatmap{
 			if not(self in ccu_heatmap){do die;}
 		}
+		ask household{
+			if not(self in current_active_households){do die;}
+		}
+		current_active_households <- household where(each.from_scenario = 1);
 
 		//TEST
 		//write "hab/emp: "+hab_emp_ratio();
@@ -1055,6 +1082,42 @@ global skills:[network]{
 	//Currently it is under development. We are looking to use fields and mesh to show heatmaps (gama 1.8.2).
 	//Currently we use "from_scenario" variable to distiguish the source of data
 
+
+	/*
+	 * EXAMPLE OF HOW WE MODEL HEALTH
+	 * current_heatmap <- "health";
+		//Radar values
+		ask current_active_blocks{
+			nb_different_health_equipment <- 0;
+			loop class over:health_distances.keys{
+				list<equipment> tmp_list <- health_facilities where(each.subtype = class) at_distance(health_distances[class]);
+				nb_different_health_equipment <- empty(tmp_list)?nb_different_health_equipment:nb_different_health_equipment+1;
+			}
+			ind_proximity_2_health_equipment <- nb_different_health_equipment > min_health_equipment;
+			list<people> my_people <- people where(each.home_block=self);
+			ask my_people{
+				ind_health_equipment_proximity <- myself.ind_proximity_2_health_equipment;
+			}
+			
+			if length(my_people) = 0{
+				health_proximity <- 0.0;
+			}
+			else{
+				health_proximity <- length(my_people where(each.ind_health_equipment_proximity))/length(my_people);	
+			}
+			
+		}
+		ask ref_grid{
+			list<blocks> my_blocks <- current_active_blocks at_distance(150);
+			if my_blocks = nil or length(my_blocks)=0 or my_blocks = []{my_blocks <- [current_active_blocks closest_to(self)];}
+			float value <- mean(my_blocks collect(each.health_proximity));
+			ask heatmap inside(self){
+				grid_value <- value;
+			}
+		}
+		do spread_value(spread_value_factor);
+	 */
+
 	action heatmap2education{
 		current_heatmap <- "education";
 		ask ccu_heatmap{grid_value <- 0.0;}
@@ -1067,8 +1130,23 @@ global skills:[network]{
 				nb_different_education_equipment <- empty(tmp_list)?nb_different_education_equipment:nb_different_education_equipment+1;
 			}
 			ind_proximity_2_education_equipment <- nb_different_education_equipment > min_education_equipment;
-			ask people where(each.home_block=self){
+			list<people> my_people <- people where(each.home_block=self);
+			ask my_people{
 				ind_education_equipment_proximity <- myself.ind_proximity_2_education_equipment;
+			}
+			if length(my_people) = 0{
+				education_proximity <- 0.0;
+			}
+			else{
+				education_proximity <- length(my_people where(each.ind_education_equipment_proximity))/length(my_people);
+			}
+			ask ref_grid{
+				list<blocks> my_blocks <- current_active_blocks at_distance(150);
+				if my_blocks = nil or length(my_blocks) = 0 or my_blocks =[]{my_blocks <- [current_active_blocks closest_to(self)];}
+				float value <- mean(my_blocks collect(each.education_proximity));
+				ask heatmap inside(self){
+					grid_value <- value;
+				}
 			}
 			//int scenario_index <- scenario = 1?0:1;
 			//dash_educational_equipment_proximity[scenario_index] <- length(people where(each.from_scenario=scenario and each.ind_education_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
@@ -1092,7 +1170,7 @@ global skills:[network]{
 				ask the_cells{grid_value <- mean(my_blocks collect(each.education_proximity));}
 			}
 		}*/
-		ask education_facilities {
+		/*ask education_facilities {
 			//Here we obtain the shape of the block in order to update the grid values related to it
 			blocks the_block <- current_active_blocks closest_to self;
 			list<heatmap> the_cells;
@@ -1102,7 +1180,7 @@ global skills:[network]{
 					grid_value <- 1.0;
 				}
 			}
-		}
+		}*/
 		do spread_value(spread_value_factor);
 	}
 	action heatmap2culture{
@@ -1581,6 +1659,15 @@ species project{
 		blocks my_block <- first( blocks where(each.id=block_id and from_scenario=self.from_scenario));
 		add my_block to:current_active_blocks;
 		ask my_block{
+			write "adding "+length(my_households)+" new households";
+			ask my_households{
+				write "before: "+length(current_active_households);
+				current_active_households <- current_active_households + [self];
+				//add self to:current_active_households;
+				write "after: "+length(current_active_households);
+			}
+		}
+		ask my_block{
 			nb_people <- myself.population;
 			nb_households <- nb_households + viv_eco + viv_med + viv_res;
 			write "project "+myself.letter+ " adding "+nb_people+" people";
@@ -1604,6 +1691,14 @@ species project{
 		list<blocks> blocks_tbr <- current_active_blocks where(each.id=block_id);
 		ask blocks_tbr{
 			remove self from:current_active_blocks;
+			
+			ask my_households{
+				//remove self from:current_active_households;
+				write "before: "+length(current_active_households);
+				current_active_households <- current_active_households - [self];
+				//add self to:current_active_households;
+				write "after: "+length(current_active_households);
+			}
 		}
 	}
 	aspect default{
@@ -1869,7 +1964,7 @@ species base_grid{
 		people_living_inside <- length(people where(self covers each.home_point));
 	}
 	action compute_household_inside{
-		//households_inside <- length(household where(self covers each));
+		households_inside <- length(current_active_households where(self covers each));
 	}
 }
 
@@ -1897,6 +1992,7 @@ species blocks{
 	int from_scenario;
 	int nb_people;
 	int nb_households;
+	list<household> my_households;
 	float block_area;
 	bool valid <- false;
 	string viv_type;
@@ -1983,8 +2079,12 @@ species blocks{
 	}
 }*/
 species household{
+	int from_scenario;
 	aspect default{
-		draw circle(5) border:rgb (185, 19, 172, 255) wireframe:true;
+		if self in current_active_households{
+			draw triangle(5) color:from_scenario=1?#green:rgb (185, 19, 172, 255) wireframe:true;
+		}
+		
 	}
 }
 species roads{
@@ -2189,7 +2289,7 @@ experiment CCU_1_1000 type:gui{
 			species satellite_background aspect:default refresh:true;
 			species ccu_limit aspect:default refresh:true;
 			species blocks aspect:default;
-			species economic_unit aspect:default;
+			//species economic_unit aspect:default;
 			species people aspect:default;
 			species car aspect:default;
 			species heatmap aspect:heat;
