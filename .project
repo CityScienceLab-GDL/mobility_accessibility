@@ -29,7 +29,7 @@
 		<link>
 			<name>external/Scenarios_lomas.gaml</name>
 			<type>1</type>
-			<location>C:/Users/gamaa/Documents/Software Projects/Simulation projects/Recorridos/models/Scenarios_lomas.gaml</location>
+			<location>/Applications/Gama.app/Contents/MacOS/C::/Users/gamaa/Documents/Software Projects/Simulation projects/Recorridos/models/Scenarios_lomas.gaml</location>
 		</link>
 		<link>
 			<name>external/copy of GEOGRID</name>
@@ -109,7 +109,7 @@
 		<link>
 			<name>external/core_lomas.gaml</name>
 			<type>1</type>
-			<location>C:/Users/gamaa/Documents/Software Projects/Simulation projects/Recorridos/models/core_lomas.gaml</location>
+			<location>/Applications/Gama.app/Contents/MacOS/C::/Users/gamaa/Documents/Software Projects/Simulation projects/Recorridos/models/core_lomas.gaml</location>
 		</link>
 		<link>
 			<name>external/hashes</name>

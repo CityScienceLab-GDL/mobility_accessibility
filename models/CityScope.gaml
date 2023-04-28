@@ -2016,32 +2016,32 @@ experiment CCU_1_1000 type:gui{
 			species intervention_area aspect:default;
 			
 			//Keyboard events
-			event h {show_heatmap <- !show_heatmap;} //Heatmap display
-			event s action:heatmap2health;
-			event e action:heatmap2education;
-			event c action:heatmap2culture;
-			event x action:heatmap2sports;
-			event d action:heatmap2daydiv;
-			event n action:heatmap2nightdiv;
-			event w action:heatmap2knowdiv;
+			event "h" {show_heatmap <- !show_heatmap;} //Heatmap display
+			event "s" action:heatmap2health;
+			event "e" action:heatmap2education;
+			event "c" action:heatmap2culture;
+			event "x" action:heatmap2sports;
+			event "d" action:heatmap2daydiv;
+			event "n" action:heatmap2nightdiv;
+			event "w" action:heatmap2knowdiv;
 			
-			event u action:heatmap2daydensity;
-			event i action:heatmap2nightdensity;
-			event o action:heatmap2knowledgedensity;
-			event p action:heatmap2interactiondensity;
-			event l action:heatmap2populationdensity;
+			event "u" action:heatmap2daydensity;
+			event "i" action:heatmap2nightdensity;
+			event "o" action:heatmap2knowledgedensity;
+			event "p" action:heatmap2interactiondensity;
+			event "l" action:heatmap2populationdensity;
 			
-			event m action:heatmap2mobility;
-			event q action:show_satellite_action;
-			event t action:activate_scenario1;
-			event y action:activate_scenario2;
+			event "m" action:heatmap2mobility;
+			event "q" action:show_satellite_action;
+			event "t" action:activate_scenario1;
+			event "y" action:activate_scenario2;
 			
 			//Events to change scenario
-			event A action:change_scenario_A;
-			event B action:change_scenario_B;
-			event F action:change_scenario_K;
-			event I action:change_scenario_I;
-			event L action:change_scenario_L;
+			event "A" action:change_scenario_A;
+			event "B" action:change_scenario_B;
+			event "F" action:change_scenario_K;
+			event "I" action:change_scenario_I;
+			event "L" action:change_scenario_L;
 		}
 	}
 }
