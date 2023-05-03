@@ -1,7 +1,7 @@
 /**
-* Name: filesvalidator
+* Name: CityScope.gaml
 * Based on the internal empty template. 
-* Author: Gamaliel Palomo, Juan Alvarez
+* Author: Gamaliel Palomo, Juan Alvarez, Arnaud Grignard
 * Tags: 
 */
 
@@ -15,7 +15,6 @@ global skills:[network]{
 	//Shape files
 	
 	//Environmental shapes
-	//file new_limits_shp <- file(dcu_limits_filename);
 	file dcu_limit_shp <- file(dcu_limits_filename);
 	file dcu_satellite_shp <- file(main_shp_path+"environment/envolvente_mesa_imagen_satelital.shp");
 	file ccu_limit_shp <- file(main_shp_path+"environment/scenario_limits.shp");
@@ -58,7 +57,6 @@ global skills:[network]{
 	file s2_grid_shp 					<- file(main_shp_path+"scenario2/grid.shp");
 	
 	//Simulation parameters
-	//geometry shape <- envelope(dcu_limit_shp);
 	geometry shape <- envelope(dcu_limit_shp);
 	//int scenario <- 1;
 	
