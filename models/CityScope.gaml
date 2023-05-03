@@ -735,7 +735,16 @@ global skills:[network]{
 	}
 		
 	
-	
+	action activate_scenario1{
+		ask intervention_area{
+			do activate_scenario(1);
+		}
+	}
+	action activate_scenario2{
+		ask intervention_area{
+			do activate_scenario(2);
+		}
+	}
 	//Function created to create paths from blocks to blocks
 	action pathfinder{
 		int valid <- 0;
@@ -1035,6 +1044,7 @@ global skills:[network]{
 		return result;
 	}
 	
+
 	float mean_density_day{
 		write "computing density day";
 		float result;
@@ -1865,6 +1875,7 @@ species base_grid{
 		if not empty(my_tmp_activities){
 			loop act over:my_tmp_activities{
 				class_counter[act.sub_id] <- class_counter[act.sub_id] + 1;
+
 			}
 		}
 		int total_activities <- sum(class_counter.values);
@@ -2144,6 +2155,7 @@ species people skills:[moving]{
 	action compute_mobility_accessibility{
 		int transport_accessibilty_count <- 0;
 		list<float> distances <- [];
+
 		try{
 			transport_station closest_station <- transport_station where(each.type="bus") closest_to self;
 			add closest_station distance_to self to:distances;
@@ -2217,12 +2229,18 @@ species people skills:[moving]{
 		activity_date <- activity_date + init_minute#minutes;
 		agenda_day <+ (activity_date::"home");
 	}
-	reflex update_activity when:not empty(agenda_day) and (after(agenda_day.keys[0])) {
-		string current_activity <-agenda_day.values[0];
-		target_point <- current_activity = "activity"?any_location_in(target_block):any_location_in(home_block);
-		agenda_day>>first(agenda_day);
-		currently_moving <- true;
+	reflex update_activity when:not dead(self) and not empty(agenda_day){
+		try{
+			if after(agenda_day.keys[0]) {
+		  	string current_activity <-agenda_day.values[0];
+			target_point <- current_activity = "activity"?any_location_in(target_block):any_location_in(home_block);
+			agenda_day>>first(agenda_day);
+			currently_moving <- true;
+	 	 }
 	}
+	  
+ }
+	
 	
 	//This reflex controls the action of moving from point A to B
 	reflex moving{
