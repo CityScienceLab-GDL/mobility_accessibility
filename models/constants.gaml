@@ -1,7 +1,7 @@
 /**
 * Name: constants
 *  
-* Author: Gamaliel Palomo
+* Author: Gamaliel Palomo, Juan Alvarez, Arnaud Grignard
 * Tags: 
 */
 

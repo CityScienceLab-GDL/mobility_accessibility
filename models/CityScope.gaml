@@ -61,12 +61,18 @@ global skills:[network]{
 	//int scenario <- 1;
 	
 	
-	//Network variables
+	//Road network variables
 	graph roads_network;
 	graph event_roads_network;
 	map<string,path> paths;
 	map event_roads_weight;
 	map roads_weight;
+	
+	//Network variables
+	bool enable_mqtt <- false;
+	string mqtt_server_name <- "localhost";
+	string mqtt_topic <- "cityscope_table";
+	
 	
 	//Visualization variables
 	bool show_satellite <- false parameter:"Satellite" category:"Visualization";
@@ -146,9 +152,10 @@ global skills:[network]{
 		starting_date 	<- date("2022-11-26 06:00:00");
 		
 		//Initialize MQTT connection
-		write "Initializing MQTT connection";
-		do connect to:"localhost" with_name:"cityscope_table";
-		
+		if (enable_mqtt){
+			write "Initializing MQTT connection";
+			do connect to:"localhost" with_name:"cityscope_table";
+		}
 		
 		//Create environment agents
 		//create ccu_limit from:ccu_limit_shp;
@@ -433,7 +440,7 @@ global skills:[network]{
 	}
 	
 	//Reflex to listen to the MQTT topic
-	reflex receiveAgent when:has_more_message(){
+	reflex readMailBox when:has_more_message() and enable_mqtt{
 		message the_message <- fetch_message();
 		write "Received: "+the_message.contents;
 		// A, B, I, K, L
