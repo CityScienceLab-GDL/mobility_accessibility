@@ -1,8 +1,11 @@
 import serial
 import paho.mqtt.client as paho
+import time
 
 broker="localhost"
 port=1883
+
+status = {"A":"1","B":"1","K":"1","I":"1","L":"1"}
 
 def on_publish(client,userdata,result):             #create function for callback
     print("¡Publicado en Gama!".format(userdata, result))
@@ -15,31 +18,38 @@ def on_message(client, userdata, message):
 	print('qos: %d' % message.qos)
 
 # Editar
-ser = serial.Serial('COM4', 9800, timeout=1) # Cambiar por COM en el que se conecta el arduino
+ser = serial.Serial('COM9', 9800, timeout=1) # Cambiar por COM en el que se conecta el arduino
 ser.flushInput()
 
 client= paho.Client("table_client")                           #create client object
 client.on_publish = on_publish                          #assign function to callback
 client.on_message = on_message
-client.connect(broker,port) 
 
 while True:
     try:
         ser_bytes = ser.readline()
         msg = str(ser_bytes[0:len(ser_bytes)-2].decode("utf-8"))
-        if "[" in msg and "]" in msg:
-            msg_body = msg.split("[")[1]
-            msg_body = msg_body.split("]")[0]
-            msg_parts = msg_body.split(",")
-            for part in msg_parts:
-                polygon, scenario = part.split("/")
-                if polygon in ["A", "B", "K", "I", "L"] and \
-                scenario in ["1", "2", "3"]:
-                    pass
-                else:
-                    raise Exception("Mensaje incompleto")
-            print(msg_body)
-            ret= client.publish("cityscope_table", msg_body) 
+        msg_polygons = msg.split(",")
+        for element in msg_polygons:
+            msg_parts = element.split("/")
+            if msg_parts[0] in ["A", "B", "K", "I", "L"] and msg_parts[1] in ["1", "2", "3"]:
+                polygon = msg_parts[0]
+                project = msg_parts[1]
+                if status[polygon] != project:
+                    client.connect(broker,port) 
+                    print("Nuevo proyecto '{}' para poligono '{}'".format(polygon, project))
+                    status[polygon] = project
+                    msg_body = "A/{},B/{},K/{},I/{},L/{}".format(status["A"], status["B"], \
+                                                status["K"], status["I"], status["L"])
+                    ret= client.publish("cityscope_table", msg_body) 
+                    print(ret)
+                    time.sleep(6)
+                    client.disconnect()
     except:
         print("Keyboard Interrupt")
         break
+        """
+        print(msg)
+    except:
+        pass
+        """

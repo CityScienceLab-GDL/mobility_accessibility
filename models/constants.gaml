@@ -26,6 +26,11 @@ global{
 	string projects_csv_filename <- "/projects.csv";
 	string projects_shp_filename <- "/scenario2/projects.shp";
 	string allowed_activities_by_use_filename <- "/EQUIV_SCIAN_PP.csv";
+	string day_activities_csv_filename <- "/day_activities.csv";
+	string night_activities_csv_filename <- "/night_activities.csv";
+	string knowledge_activities_csv_filename <- "/knowledge_activities.csv";
+	string interaction_places_csv_filename <- "/interaction_places.csv";
+	string third_places_csv_filename <- "/third_places.csv";
 	
 	//List of files that are used to simulate the people flows in the case of cultural events
 	string events_roads_filename <- main_shp_path + "events/roads.shp";
@@ -132,10 +137,16 @@ global{
 	map<string,float> energy_requirement_map<-["Económica"::769.41,"Media"::3130.58,"Residencial"::3730.58];
 	map<string,float> waste_generation_map<-["Económica"::0.755,"Media"::1.005,"Residencial"::1.106];
 	map<string,float> water_requirement_map<-["Económica"::251.0,"Media"::535.0,"Residencial"::689.0];
-	list<float> roads_km <- [87.954];
+	list<float> roads_km <- [87.954,93.88];
 	float students_percentage <- 0.28;
 	float workers_percentage <- 0.45;
+	float ccu_area_ha <- 155.277;
+	float dcu_area_ha <- 456.0;
+	float ccu_area_km2 <- ccu_area_ha * 0.01;
 	
+	list<float>s1_values <- [0.29971232822840527,0.5662388000764331,0.3371347549024506,0.35730413291554636,0.14918276063874233,0.7830046562585573,0.47887457615284046,0.5226646066080343,0.45011252813203295,0.7316829207301826,0.02852153502011456,0.8670975549722401,0.5226646066080343,0.5768042549058664];
+	list<float>s2_values <- [0.5814758130665304,0.8578181534493942,0.6204619000160776,0.353634698584762,0.1548924007974432,0.7808334394586737,0.37493608930814676,0.4092216070348485,0.3003003003003003,0.48815482148815487,0.02719682584560077,0.8978271599920978,0.4092216070348485,0.7934099217735945];
+	list<float>cs_values;
 	
 	
 	//Edge values
@@ -143,7 +154,13 @@ global{
 	float max_diversity <- 6.0;
 	float max_transport_accessibility <- 1.0;
 	float max_hab_emp_ratio <- 20.0;
-	float max_density <- 20.0;
+	float max_density <- 350.0;
+	float max_energy_requirement <- 7384.94;
+	float max_water_requirement <- 886.0;
+	float max_waste_generation <- 1.217;
+	float max_km_per_person <- 20.0;
+	float max_km_per_km2 <- 1.0;
+	float max_green_area_per_person <- 40.0;
 	int max_schools_near <- 4;
 	int max_hospitals_near <-4;
 	int max_culture_near <- 10;
@@ -157,17 +174,22 @@ global{
 	float distance2culture 		<- 200#m;
 	float distance2education 	<- 200#m;
 	
+	float mean_family_size <- 2.7;
+	
 	
 	//New version
 	
 	int spread_value_factor <- 10;
-	float spread_factor <- 0.2;
+	float spread_factor <- 0.5;
 	map<string,int> education_distances <- ["Preescolar"::500,"Primaria"::750,"Secundaria"::1000,"Bachillerato"::5000,"Licenciatura"::10000];
 	map<string,int> culture_distances <- ["Auditorio Estatal"::10000,"Auditorio Municipal"::2340,"Biblioteca Municipal"::1500,"Casa de la Cultura"::10000,"Escuela Integral de Artes"::10000,"Museo Local"::10000,"Teatro"::10000,"Biblioteca pública estatal"::10000];
 	map<string,int> health_distances <- ["Centro de Sallud Urbano (SSA)"::1000,"Clínica Hospitall"::10000,"Consultorio Privadol"::1000,"Hospital Privado"::10000,"Hospital General"::10000,"Hospital General (SSA)l"::10000,"Laboratorio"::10000,"Unidad de Medicina Familiar"::5000,"Unidad de Medicina Familiar (IMSS)"::5000];
 	map<string,int> sports_distances <- ["Equipamiento deportivo"::1000];
 	
+	int delay_before_export_data 			<- 100;
+	int delay_before_update_heatmap 	<- 50;
 	
-	//Variables related to events that happen within the polygon
+	//Variables related to heatmap
+	map<string,list<string>> heatmap_names <- ["facilities"::["health","culture","education","sports"],"population/housing"::["population_density","mobility"],"activities_density"::["day_density","night_density","knowledge_density","interaction_density"],"activities_diversity"::["day_diversity","night_diversity","knowledge_diversity"]];
 	
 }

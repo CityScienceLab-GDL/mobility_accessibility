@@ -1,16 +1,16 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis version="3.24.2-Tisler">
+<qgis version="3.22.0-Bia?owie?a">
   <identifier></identifier>
   <parentidentifier></parentidentifier>
   <language></language>
-  <type></type>
+  <type>dataset</type>
   <title></title>
   <abstract></abstract>
   <links/>
   <fees></fees>
   <encoding></encoding>
   <crs>
-    <spatialrefsys nativeFormat="Wkt">
+    <spatialrefsys>
       <wkt></wkt>
       <proj4></proj4>
       <srsid>0</srsid>
