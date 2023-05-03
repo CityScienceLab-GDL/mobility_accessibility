@@ -69,14 +69,15 @@ global skills:[network]{
 	map roads_weight;
 	
 	//Network variables
-	bool enable_mqtt <- false;
+	bool enable_mqtt <- false parameter:"Enable MQTT" category:"Functionality";
 	string mqtt_server_name <- "localhost";
 	string mqtt_topic <- "cityscope_table";
 	
 	
 	//Visualization variables
 	bool show_satellite <- false parameter:"Satellite" category:"Visualization";
-	bool show_intervention_areas <- false parameter:"Intervention areas" category:"Visualization";
+	bool show_people <- true parameter:"People" category:"Visualization";
+	bool show_information <- false parameter:"Information" category:"Visualization";
 	
 	//Heatmap  variables
 	string current_heatmap 		<- "";
@@ -1337,8 +1338,45 @@ global skills:[network]{
 	}
 	
 	action heatmap2sports{
+	
 		current_heatmap <- "sports";
 		//Radar values
+		ask current_active_blocks{
+			nb_different_sports_equipment <- 0;
+			loop class over:sports_distances.keys{
+				list<equipment> tmp_list <- sports_facilities where(each.subtype = class) at_distance(sports_distances[class]);
+				nb_different_sports_equipment <- empty(tmp_list)?nb_different_sports_equipment:nb_different_sports_equipment+1;
+			}
+			ind_proximity_2_sports_equipment <- nb_different_sports_equipment > min_sports_equipment;
+			list<people> my_people <- people where(each.home_block=self);
+			ask my_people{
+				ind_sports_equipment_proximity <- myself.ind_proximity_2_sports_equipment;
+			}
+			
+			if length(my_people) = 0{
+				sports_proximity <- 0.0;
+			}
+			else{
+				sports_proximity <- length(my_people where(each.ind_sports_equipment_proximity))/length(my_people);	
+			}
+			
+		}
+		ask ref_grid{
+			list<blocks> my_blocks <- current_active_blocks at_distance(150);
+			if my_blocks = nil or length(my_blocks)=0 or my_blocks = []{my_blocks <- [current_active_blocks closest_to(self)];}
+			float value <- mean(my_blocks collect(each.sports_proximity));
+			ask heatmap inside(self){
+				grid_value <- value;
+			}
+		}
+		do spread_value(spread_value_factor);
+	  
+		
+		
+		
+		//Radar values
+		/*
+		current_heatmap <- "sports";
 		ask current_active_blocks inside (first(ccu_limit)){
 			nb_different_sports_equipment <- 0;
 			loop class over:sports_distances.keys{
@@ -1351,11 +1389,8 @@ global skills:[network]{
 				ind_sports_equipment_proximity <- myself.ind_proximity_2_sports_equipment;
 				value_sum <- value_sum + (ind_sports_equipment_proximity?1:0);
 			}
-			//int scenario_index <- scenario = 1?0:1;
-			//dash_public_spaces_proximity[scenario_index] <- length(people where(each.from_scenario=scenario and each.ind_sports_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
 		}
-		//write length(people where(each.from_scenario=scenario and each.ind_sports_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
-		
+		*/
 		//Heatmap values
 		ask ccu_heatmap{grid_value <- 0.0;}
 		 ask sports_facilities{
@@ -1794,8 +1829,10 @@ species intervention_area{
 		
 	}
 	aspect default{
-		draw shape wireframe:true border:#yellow;
-		draw area_name+string(active_scenario) color:#white font:font("Helvetica", 30 , #bold)at:{location.x,location.y,20};
+		if(show_information){
+			draw shape wireframe:true border:#yellow;
+			draw area_name+string(active_scenario) color:#white font:font("Helvetica", 30 , #bold)at:{location.x,location.y,20};	
+		}
 	}
 }
 //***********************************************************
@@ -2021,6 +2058,7 @@ species blocks{
 	float education_proximity;
 	float culture_proximity;
 	float health_proximity;
+	float sports_proximity;
 	float energy_requirement;
 	float waste_generation;
 	float population_density;
@@ -2085,15 +2123,6 @@ species blocks{
 	}
 }
 
-//This species represents the polygons that are going to be changed through the physical interface
-/*species intervention_area{
-	string letter;
-	aspect default{
-		if show_intervention_areas{
-			draw shape color:#green border:#red width:5.0;
-		}
-	}
-}*/
 species household{
 	int from_scenario;
 	aspect default{
@@ -2261,13 +2290,9 @@ species people skills:[moving]{
 	}
 	
 	aspect default{
-		draw circle(4) border:#yellow color:rgb((1-mobility_accessibility)*255,mobility_accessibility*255,0,1.0);
-		/*if from_scenario = 1{
+		if(show_people){
 			draw circle(4) border:#yellow color:rgb((1-mobility_accessibility)*255,mobility_accessibility*255,0,1.0);
 		}
-		else if from_scenario = 2{
-			draw square(4) color:rgb((1-mobility_accessibility)*255,mobility_accessibility*255,0,1.0);
-		}*/
 	}
 }
 species grid_paths{
@@ -2286,22 +2311,8 @@ species grid_paths{
 experiment CCU_1_1000 type:gui{
 	output{
 		display gui type:opengl background:#black axes:false  fullscreen:0{
-			 //BEST CALIBRATED CAMERAS
-			
-			// camera 'default' location: {1482.4217,1625.375,1913.8429} target: {1482.8714,1623.9457,0.0}; //ROTADA WORKING FIRST LIMITS
-			
-			 //camera 'default' location: {1480.8236,1625.2571,1913.8429} target: {1480.9663,1623.7635,0.0};
-			 //camera 'default' location: {1482.5464,1627.3424,1913.8429} target: {1482.6891,1625.8508,0.0};
-			//camera 'default' dynamic:true location: {1006.2548,657.1804,1679.7139} target: {1004.6164,667.1629,0.0};
-			
-			 //camera 'default' location: {1482.625,1625.4237,1913.8429} target: {1495.219,1673.9763,0.0};//ROTADA AJUSTADA
-			 //camera 'default' location: {1482.7287,1625.4373,1913.8429} target: {1482.8714,1623.9457,0.0};
-			
-			
-			 //camera 'default' location: {1028.7383,671.4495,1740.1146} target: {1028.7431,671.4195,0.0};//26 de abril
-			 //camera 'default' location: {1007.3931,681.2155,1668.1296} target: {1009.0202,671.3018,0.0};
-			 camera 'default' location: {1007.3931,681.2155,1270.1296} target: {1009.0202,671.3018,0.0};
-			 
+			camera 'default' location: {1007.3931,681.2155,1270.1296} target: {1009.0202,671.3018,0.0};
+	
 			overlay size:{0,0} position:{0.1,0.1} transparency:0.5{
 				draw "abcdefghiíjklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.:0123456789" at: {0#px,0#px} color:rgb(0,0,0,0) font: font("Arial", 55, #bold);
 				int the_day <- current_date.day-starting_date.day +1;
@@ -2312,7 +2323,6 @@ experiment CCU_1_1000 type:gui{
 			species satellite_background aspect:default refresh:true;
 			species ccu_limit aspect:default refresh:true;
 			species blocks aspect:default;
-			//species economic_unit aspect:default;
 			species people aspect:default;
 			species car aspect:default;
 			species heatmap aspect:heat;
