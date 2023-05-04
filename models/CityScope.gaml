@@ -1,10 +1,14 @@
 /**
-* Name: filesvalidator
+* Name: CityScope.gaml
 * Based on the internal empty template. 
-* Author: Gamaliel Palomo, Juan Alvarez
+* Author: Gamaliel Palomo, Juan Alvarez, Arnaud Grignard
 * Tags: 
 */
 
+/*
+ * HISTORY
+ * gama-may04   Create history and add some changes to not allowing change the heatmap from mqtt messages (for now)
+ */
 
 model CityScope
 import "constants.gaml"
@@ -15,7 +19,6 @@ global skills:[network]{
 	//Shape files
 	
 	//Environmental shapes
-	//file new_limits_shp <- file(dcu_limits_filename);
 	file dcu_limit_shp <- file(dcu_limits_filename);
 	file dcu_satellite_shp <- file(main_shp_path+"environment/envolvente_mesa_imagen_satelital.shp");
 	file ccu_limit_shp <- file(main_shp_path+"environment/scenario_limits.shp");
@@ -58,21 +61,27 @@ global skills:[network]{
 	file s2_grid_shp 					<- file(main_shp_path+"scenario2/grid.shp");
 	
 	//Simulation parameters
-	//geometry shape <- envelope(dcu_limit_shp);
 	geometry shape <- envelope(dcu_limit_shp);
 	//int scenario <- 1;
 	
 	
-	//Network variables
+	//Road network variables
 	graph roads_network;
 	graph event_roads_network;
 	map<string,path> paths;
 	map event_roads_weight;
 	map roads_weight;
 	
+	//Network variables
+	bool enable_mqtt <- true parameter:"Enable MQTT" category:"Functionality";
+	string mqtt_server_name <- "localhost";
+	string mqtt_topic <- "cityscope_table";
+	
+	
 	//Visualization variables
 	bool show_satellite <- false parameter:"Satellite" category:"Visualization";
-	bool show_intervention_areas <- false parameter:"Intervention areas" category:"Visualization";
+	bool show_people <- true parameter:"People" category:"Visualization";
+	bool show_information <- false parameter:"Information" category:"Visualization";
 	
 	//Heatmap  variables
 	string current_heatmap 		<- "";
@@ -148,9 +157,10 @@ global skills:[network]{
 		starting_date 	<- date("2022-11-26 06:00:00");
 		
 		//Initialize MQTT connection
-		write "Initializing MQTT connection";
-		do connect to:"localhost" with_name:"cityscope_table";
-		
+		if (enable_mqtt){
+			write "Initializing MQTT connection";
+			do connect to:"localhost" with_name:"cityscope_table";
+		}
 		
 		//Create environment agents
 		//create ccu_limit from:ccu_limit_shp;
@@ -435,7 +445,7 @@ global skills:[network]{
 	}
 	
 	//Reflex to listen to the MQTT topic
-	reflex receiveAgent when:has_more_message(){
+	reflex readMailBox when:has_more_message() and enable_mqtt{
 		message the_message <- fetch_message();
 		write "Received: "+the_message.contents;
 		// A, B, I, K, L
@@ -444,25 +454,32 @@ global skills:[network]{
 		loop w over: words{
 			list<string> letters <- split_with(w,"/");
 			if letters[0] ="M"{ //The message indicates the heatmap to activate
-				write "Changing heatmap to "+letters[1];
-				string opt <- letters[1];
-				switch opt{
-					match "health" {do heatmap2health();}
-					match "education" {do heatmap2education();}
-					match "culture" {do heatmap2culture();}
-					match "sports" {do heatmap2sports();}
-					match "daydiv" {do heatmap2daydiv();}
-					match "nightdiv" {do heatmap2nightdiv();}
-					match "knowdiv" {do heatmap2knowdiv();}
-					match "daydensity" {do heatmap2daydensity();}
-					match "nightdensity" {do heatmap2nightdensity();}
-					match "knowledgedensity" {do heatmap2knowledgedensity();}
-					match "nightdiv" {do heatmap2nightdiv();}
-					match "interactiondensity" {do heatmap2interactiondensity();}
-					match "populationdensity" {do heatmap2populationdensity();}
-					match "householddensity" {do heatmap2householddensity();}
-					match "mobility" {do heatmap2mobility();}
+				write "Heatmap changes from MQTT not allowed";
+				/*if(current_heatmap!=letters[1]){									//gama-may04-> We are not currently allowing changes to heatmap from MQTT
+					write "Changing heatmap to "+letters[1];
+					string opt <- letters[1];
+					switch opt{
+						match "health" {do heatmap2health();}
+						match "education" {do heatmap2education();}
+						match "culture" {do heatmap2culture();}
+						match "sports" {do heatmap2sports();}
+						match "daydiv" {do heatmap2daydiv();}
+						match "nightdiv" {do heatmap2nightdiv();}
+						match "knowdiv" {do heatmap2knowdiv();}
+						match "daydensity" {do heatmap2daydensity();}
+						match "nightdensity" {do heatmap2nightdensity();}
+						match "knowledgedensity" {do heatmap2knowledgedensity();}
+						match "nightdiv" {do heatmap2nightdiv();}
+						match "interactiondensity" {do heatmap2interactiondensity();}
+						match "populationdensity" {do heatmap2populationdensity();}
+						match "householddensity" {do heatmap2householddensity();}
+						match "mobility" {do heatmap2mobility();}
+					}
 				}
+				else{
+					write "Heatmap is already showing "+letters[1];
+				}
+				*/ 																	//<- gama-may04
 			}
 			else if letters[0] = "S"{//The message indicates to activate a full scenario
 				string opt <- letters[1];
@@ -472,11 +489,13 @@ global skills:[network]{
 				}
 			}
 			else{
-				write "Activating polygon: "+letters[0]+", scenario: "+letters[1];
-				current_scenarios[letters[0]] <- int(letters[1]);
-				ask intervention_area where(each.area_name=letters[0]){
-					do activate_scenario(int(letters[1]));
-				}
+				if letters[0]!="Z"{															//gama-may04-> Z means invalid polygon
+					write "Activating polygon: "+letters[0]+", scenario: "+letters[1];
+					current_scenarios[letters[0]] <- int(letters[1]);
+					ask intervention_area where(each.area_name=letters[0]){
+						do activate_scenario(int(letters[1]));
+					}
+				}																			//<-gama-may04
 			}			
 		}
 		//allow_export_current_data <- true;
@@ -606,7 +625,7 @@ global skills:[network]{
 			dash_hab_net_density[0],
 			dash_hab_net_density[0],
 			dash_day_activities_diversity[0]
-		] to:"output_s1.csv" type:"csv" rewrite:false;
+		] to:"../output/output_s1.csv" type:"csv" rewrite:false;
 	}
 	reflex export_data_sc2 when:allow_export_data_sc2{
 		//Scenario 2
@@ -653,7 +672,7 @@ global skills:[network]{
 			dash_hab_net_density[1],
 			dash_hab_net_density[1],
 			dash_day_activities_diversity[1]
-		] to:"output_s2.csv" type:"csv" rewrite:true;
+		] to:"../output/output_s2.csv" type:"csv" rewrite:true;
 		allow_export_data_sc2 <- false;
 	}
 	reflex compute_current_data when:allow_export_current_data{
@@ -702,7 +721,7 @@ global skills:[network]{
 				dash_day_activities_diversity[2],
 				1
 				
-			] to:"output_radar_active.csv" type:"csv" rewrite:true header:false;
+			] to:"../output/output_radar_active.csv" type:"csv" rewrite:true header:false;
 			
 			save data:[
 				dash_educational_equipment_proximity[2],
@@ -711,7 +730,7 @@ global skills:[network]{
 				dash_cultural_equipment_proximity[2],
 				dash_cultural_equipment_proximity[2],
 				1
-			] to:"output_facilities_proximity_active.csv" type:"csv" rewrite:true header:false;
+			] to:"../output/output_facilities_proximity_active.csv" type:"csv" rewrite:true header:false;
 			
 			save data:[
 				
@@ -721,7 +740,7 @@ global skills:[network]{
 				dash_knowledge_density[2],
 				1
 				
-			] to:"output_activities_density_active.csv" type:"csv" rewrite:true header:false;
+			] to:"../output/output_activities_density_active.csv" type:"csv" rewrite:true header:false;
 			
 			save data:[
 				dash_km_ways_per_km2[2],
@@ -729,7 +748,7 @@ global skills:[network]{
 				dash_km_ways_per_km2[2],
 				dash_day_activities_diversity[2],
 				1
-			] to:"output_walkability_active.csv" type:"csv" rewrite:true header:false;
+			] to:"../output/output_walkability_active.csv" type:"csv" rewrite:true header:false;
 			allow_export_current_data<- false;
 		}
 	}
@@ -1332,8 +1351,45 @@ global skills:[network]{
 	}
 	
 	action heatmap2sports{
+	
 		current_heatmap <- "sports";
 		//Radar values
+		ask current_active_blocks{
+			nb_different_sports_equipment <- 0;
+			loop class over:sports_distances.keys{
+				list<equipment> tmp_list <- sports_facilities where(each.subtype = class) at_distance(sports_distances[class]);
+				nb_different_sports_equipment <- empty(tmp_list)?nb_different_sports_equipment:nb_different_sports_equipment+1;
+			}
+			ind_proximity_2_sports_equipment <- nb_different_sports_equipment > min_sports_equipment;
+			list<people> my_people <- people where(each.home_block=self);
+			ask my_people{
+				ind_sports_equipment_proximity <- myself.ind_proximity_2_sports_equipment;
+			}
+			
+			if length(my_people) = 0{
+				sports_proximity <- 0.0;
+			}
+			else{
+				sports_proximity <- length(my_people where(each.ind_sports_equipment_proximity))/length(my_people);	
+			}
+			
+		}
+		ask ref_grid{
+			list<blocks> my_blocks <- current_active_blocks at_distance(150);
+			if my_blocks = nil or length(my_blocks)=0 or my_blocks = []{my_blocks <- [current_active_blocks closest_to(self)];}
+			float value <- mean(my_blocks collect(each.sports_proximity));
+			ask heatmap inside(self){
+				grid_value <- value;
+			}
+		}
+		do spread_value(spread_value_factor);
+	  
+		
+		
+		
+		//Radar values
+		/*
+		current_heatmap <- "sports";
 		ask current_active_blocks inside (first(ccu_limit)){
 			nb_different_sports_equipment <- 0;
 			loop class over:sports_distances.keys{
@@ -1346,11 +1402,8 @@ global skills:[network]{
 				ind_sports_equipment_proximity <- myself.ind_proximity_2_sports_equipment;
 				value_sum <- value_sum + (ind_sports_equipment_proximity?1:0);
 			}
-			//int scenario_index <- scenario = 1?0:1;
-			//dash_public_spaces_proximity[scenario_index] <- length(people where(each.from_scenario=scenario and each.ind_sports_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
 		}
-		//write length(people where(each.from_scenario=scenario and each.ind_sports_equipment_proximity=true))/length(people where(each.from_scenario=scenario));
-		
+		*/
 		//Heatmap values
 		ask ccu_heatmap{grid_value <- 0.0;}
 		 ask sports_facilities{
@@ -1789,8 +1842,10 @@ species intervention_area{
 		
 	}
 	aspect default{
-		draw shape wireframe:true border:#yellow;
-		draw area_name+string(active_scenario) color:#white font:font("Helvetica", 30 , #bold)at:{location.x,location.y,20};
+		if(show_information){
+			draw shape wireframe:true border:#yellow;
+			draw area_name+string(active_scenario) color:#white font:font("Helvetica", 30 , #bold)at:{location.x,location.y,20};	
+		}
 	}
 }
 //***********************************************************
@@ -2016,6 +2071,7 @@ species blocks{
 	float education_proximity;
 	float culture_proximity;
 	float health_proximity;
+	float sports_proximity;
 	float energy_requirement;
 	float waste_generation;
 	float population_density;
@@ -2080,15 +2136,6 @@ species blocks{
 	}
 }
 
-//This species represents the polygons that are going to be changed through the physical interface
-/*species intervention_area{
-	string letter;
-	aspect default{
-		if show_intervention_areas{
-			draw shape color:#green border:#red width:5.0;
-		}
-	}
-}*/
 species household{
 	int from_scenario;
 	aspect default{
@@ -2256,13 +2303,9 @@ species people skills:[moving]{
 	}
 	
 	aspect default{
-		draw circle(4) border:#yellow color:rgb((1-mobility_accessibility)*255,mobility_accessibility*255,0,1.0);
-		/*if from_scenario = 1{
+		if(show_people){
 			draw circle(4) border:#yellow color:rgb((1-mobility_accessibility)*255,mobility_accessibility*255,0,1.0);
 		}
-		else if from_scenario = 2{
-			draw square(4) color:rgb((1-mobility_accessibility)*255,mobility_accessibility*255,0,1.0);
-		}*/
 	}
 }
 species grid_paths{
@@ -2280,23 +2323,9 @@ species grid_paths{
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment CCU_1_1000 type:gui{
 	output{
-		display gui type:opengl background:#black axes:false  fullscreen:0{
-			 //BEST CALIBRATED CAMERAS
-			
-			// camera 'default' location: {1482.4217,1625.375,1913.8429} target: {1482.8714,1623.9457,0.0}; //ROTADA WORKING FIRST LIMITS
-			
-			 //camera 'default' location: {1480.8236,1625.2571,1913.8429} target: {1480.9663,1623.7635,0.0};
-			 //camera 'default' location: {1482.5464,1627.3424,1913.8429} target: {1482.6891,1625.8508,0.0};
-			//camera 'default' dynamic:true location: {1006.2548,657.1804,1679.7139} target: {1004.6164,667.1629,0.0};
-			
-			 //camera 'default' location: {1482.625,1625.4237,1913.8429} target: {1495.219,1673.9763,0.0};//ROTADA AJUSTADA
-			 //camera 'default' location: {1482.7287,1625.4373,1913.8429} target: {1482.8714,1623.9457,0.0};
-			
-			
-			 //camera 'default' location: {1028.7383,671.4495,1740.1146} target: {1028.7431,671.4195,0.0};//26 de abril
-			 //camera 'default' location: {1007.3931,681.2155,1668.1296} target: {1009.0202,671.3018,0.0};
-			 camera 'default' location: {1007.3931,681.2155,1270.1296} target: {1009.0202,671.3018,0.0};
-			 
+		display gui type:opengl background:#black axes:false  fullscreen:1{
+			camera 'default' location: {1007.3931,681.2155,1270.1296} target: {1009.0202,671.3018,0.0};
+	
 			overlay size:{0,0} position:{0.1,0.1} transparency:0.5{
 				draw "abcdefghiíjklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.:0123456789" at: {0#px,0#px} color:rgb(0,0,0,0) font: font("Arial", 55, #bold);
 				int the_day <- current_date.day-starting_date.day +1;
@@ -2307,7 +2336,6 @@ experiment CCU_1_1000 type:gui{
 			species satellite_background aspect:default refresh:true;
 			species ccu_limit aspect:default refresh:true;
 			species blocks aspect:default;
-			//species economic_unit aspect:default;
 			species people aspect:default;
 			species car aspect:default;
 			species heatmap aspect:heat;
