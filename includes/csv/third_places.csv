@@ -1,0 +1,184 @@
+Código,Título
+4311,Comercio al por mayor de abarrotes y alimentos 
+4312,"Comercio al por mayor de bebidas, hielo y tabaco "
+4321,Comercio al por mayor de productos textiles y calzado 
+4331,Comercio al por mayor de productos farmacéuticos 
+4332,"Comercio al por mayor de artículos de perfumería, cosméticos y joyería "
+4333,"Comercio al por mayor de discos, juguetes y artículos deportivos "
+4334,"Comercio al por mayor de artículos de papelería, libros, revistas y periódicos "
+4335,Comercio al por mayor de electrodomésticos menores y aparatos de línea blanca 
+4341,Comercio al por mayor de materias primas agropecuarias y forestales 
+4342,Comercio al por mayor de materias primas para la industria 
+4343,Comercio al por mayor de materiales de desecho 
+4351,"Comercio al por mayor de maquinaria y equipo agropecuario, forestal y para la pesca "
+4352,Comercio al por mayor de maquinaria y equipo para la industria 
+4353,Comercio al por mayor de maquinaria y equipo para los servicios y para actividades comerciales 
+4354,"Comercio al por mayor de mobiliario y equipo de cómputo y de oficina, y de otra maquinaria y equipo de uso general "
+4361,"Comercio al por mayor de camiones y de partes y refacciones nuevas para automóviles, camionetas y camiones "
+4371,"Intermediación de comercio al por mayor, excepto a través de internet y de otros medios electrónicos "
+4372,Intermediación de comercio al por mayor exclusivamente a través de internet y otros medios electrónicos 
+4611,Comercio al por menor de abarrotes y alimentos 
+4612,"Comercio al por menor de bebidas, hielo y tabaco "
+4621,Comercio al por menor en tiendas de autoservicio 
+4622,Comercio al por menor en tiendas departamentales 
+4631,"Comercio al por menor de productos textiles, excepto ropa "
+4632,"Comercio al por menor de ropa, bisutería y accesorios de vestir "
+4633,Comercio al por menor de calzado 
+4641,Comercio al por menor de artículos para el cuidado de la salud 
+4651,Comercio al por menor de artículos de perfumería y joyería 
+4652,Comercio al por menor de artículos para el esparcimiento 
+4653,"Comercio al por menor de artículos de papelería, libros, revistas y periódicos "
+4659,"Comercio al por menor de mascotas, regalos, artículos religiosos, desechables, artesanías y otros artículos de uso personal "
+4661,Comercio al por menor de muebles para el hogar y otros enseres domésticos 
+4662,"Comercio al por menor de mobiliario, equipo y accesorios de cómputo, teléfonos y otros aparatos de comunicación "
+4663,Comercio al por menor de artículos para la decoración de interiores 
+4664,Comercio al por menor de artículos usados 
+4671,"Comercio al por menor de artículos de ferretería, tlapalería y vidrios "
+4681,Comercio al por menor de automóviles y camionetas 
+4682,"Comercio al por menor de partes y refacciones para automóviles, camionetas y camiones "
+4683,Comercio al por menor de motocicletas y otros vehículos de motor 
+4684,"Comercio al por menor de combustibles, aceites y grasas lubricantes "
+4691,"Comercio al por menor exclusivamente a través de internet, y catálogos impresos, televisión y similares "
+4811,Transporte aéreo regularT 
+4812,Transporte aéreo no regularT 
+4821,Transporte por ferrocarrilT 
+4831,Transporte marítimoT 
+4832,Transporte por aguas interioresT 
+4841,Autotransporte de carga generalT 
+4842,Autotransporte de carga especializadoT 
+4851,Transporte colectivo urbano y suburbano de pasajeros de ruta fijaT 
+4852,Transporte colectivo foráneo de pasajeros de ruta fijaT 
+4853,Servicio de taxis y limusinasT 
+4854,Transporte escolar y de personalT 
+4855,Alquiler de autobuses con choferT 
+4859,Otro transporte terrestre de pasajerosT 
+4861,Transporte de petróleo crudo por ductosT 
+4862,Transporte de gas natural por ductosT 
+4869,Transporte por ductos de otros productosT 
+4871,Transporte turístico por tierraT 
+4872,Transporte turístico por aguaT 
+4879,Otro transporte turísticoT 
+4881,Servicios relacionados con el transporte aéreoT 
+4882,Servicios relacionados con el transporte por ferrocarrilT 
+4883,Servicios relacionados con el transporte por aguaT 
+4884,Servicios relacionados con el transporte por carreteraT 
+4885,Servicios de intermediación para el transporte de cargaT 
+4889,Otros servicios relacionados con el transporteT 
+4911,Servicios postalesT 
+4921,Servicios de mensajería y paquetería foráneaT 
+4922,Servicios de mensajería y paquetería localT 
+4931,Servicios de almacenamientoT 
+5111,"Edición de periódicos, revistas, libros y similares, y edición de estas publicaciones integrada con la impresiónT "
+5112,Edición de software y edición de software integrada con la reproducciónT 
+5121,Industria fílmica y del videoT 
+5122,Industria del sonidoT 
+5151,Transmisión de programas de radio y televisiónT 
+5152,Producción de programación de canales para sistemas de televisión por cable o satelitalesT 
+5173,Operadores de servicios de telecomunicaciones alámbricas e inalámbricasT 
+5174,Operadores de servicios de telecomunicaciones vía satéliteT 
+5179,Otros servicios de telecomunicacionesT 
+5182,"Procesamiento electrónico de información, hospedaje y otros servicios relacionadosT "
+5191,Otros servicios de informaciónT 
+5211,Banca centralT 
+5221,Banca múltiple 
+5222,Instituciones financieras de fomento económico 
+5223,Uniones de crédito e instituciones de ahorro 
+5224,Otras instituciones de intermediación crediticia y financiera no bursátil 
+5225,Servicios relacionados con la intermediación crediticia no bursátil 
+5231,"Casas de bolsa, casas de cambio y centros cambiariosT "
+5232,Bolsa de valoresT 
+5239,Asesoría en inversiones y otros servicios relacionados con la intermediación bursátilT 
+5241,Compañías de seguros y fianzasT 
+5242,"Servicios relacionados con los seguros y las fianzas, y administración de fondos para el retiroT "
+5251,Sociedades de inversión especializadas en fondos para el retiro 
+5252,Fondos de inversión 
+5311,Alquiler sin intermediación de bienes raícesT 
+5312,Inmobiliarias y corredores de bienes raícesT 
+5313,Servicios relacionados con los servicios inmobiliariosT 
+5321,"Alquiler de automóviles, camiones y otros transportes terrestresT "
+5322,Alquiler de artículos para el hogar y personalesT 
+5323,Centros generales de alquilerT 
+5324,"Alquiler de maquinaria y equipo agropecuario, pesquero, industrial, comercial y de serviciosT "
+5331,"Servicios de alquiler de marcas registradas, patentes y franquiciasT "
+5411,Servicios legalesT 
+5412,"Servicios de contabilidad, auditoría y servicios relacionadosT "
+5413,"Servicios de arquitectura, ingeniería y actividades relacionadasT "
+5414,Diseño especializadoT 
+5415,Servicios de diseño de sistemas de cómputo y servicios relacionadosT 
+5416,"Servicios de consultoría administrativa, científica y técnicaT "
+5417,Servicios de investigación científica y desarrolloT 
+5418,Servicios de publicidad y actividades relacionadasT 
+5419,"Otros servicios profesionales, científicos y técnicosT "
+5511,CorporativosT 
+5611,Servicios de administración de negociosT 
+5612,Servicios combinados de apoyo en instalacionesT 
+5613,Servicios de empleoT 
+5614,"Servicios de apoyo secretarial, fotocopiado, cobranza, investigación crediticia y similaresT "
+5615,Agencias de viajes y servicios de reservacionesT 
+5616,"Servicios de investigación, protección y seguridadT "
+5617,Servicios de limpiezaT 
+5619,Otros servicios de apoyo a los negociosT 
+5621,Recolección de residuos 
+5622,Tratamiento y disposición final de residuos 
+5629,"Servicios de remediación, recuperación, y otros servicios de manejo de residuos "
+6111,"Escuelas de educación básica, media y para necesidades especialesT "
+6112,Escuelas de educación técnica superiorT 
+6113,Escuelas de educación superiorT 
+6114,"Escuelas comerciales, de computación y de capacitación para ejecutivosT "
+6115,Escuelas de oficiosT 
+6116,Otros servicios educativosT 
+6117,Servicios de apoyo a la educaciónT 
+6211,Consultorios médicosT 
+6212,Consultorios dentalesT 
+6213,Otros consultorios para el cuidado de la saludT 
+6214,Centros para la atención de pacientes que no requieren hospitalizaciónT 
+6215,Laboratorios médicos y de diagnósticoT 
+6216,Servicios de enfermería a domicilioT 
+6219,"Servicios de ambulancias, de bancos de órganos y otros servicios auxiliares al tratamiento médicoT "
+6221,Hospitales generalesT 
+6222,Hospitales psiquiátricos y para el tratamiento por adicciónT 
+6223,Hospitales de otras especialidades médicasT 
+6231,"Residencias con cuidados de enfermeras para enfermos convalecientes, en rehabilitación, incurables y terminalesT "
+6232,"Residencias para el cuidado de personas con problemas de retardo mental, trastorno mental y adiccionesT "
+6233,Asilos y otras residencias para el cuidado de ancianosT 
+6239,Orfanatos y otras residencias de asistencia socialT 
+6241,Servicios de orientación y trabajo socialT 
+6242,"Servicios comunitarios de alimentación, refugio y emergenciaT "
+6243,"Servicios de capacitación para el trabajo para personas desempleadas, subempleadas o con discapacidadT "
+6244,GuarderíasT 
+7111,Compañías y grupos de espectáculos artísticos y culturalesT 
+7112,Deportistas y equipos deportivos profesionalesT 
+7113,"Promotores de espectáculos artísticos, culturales, deportivos y similaresT "
+7114,"Agentes y representantes de artistas, deportistas y similaresT "
+7115,"Artistas, escritores y técnicos independientesT "
+7121,"Museos, sitios históricos, zoológicos y similaresT "
+7131,Parques con instalaciones recreativas y casas de juegos electrónicosT 
+7132,"Casinos, loterías y otros juegos de azarT "
+7139,Otros servicios recreativosT 
+7211,"Hoteles, moteles y similaresT "
+7212,Campamentos y albergues recreativosT 
+7213,"Pensiones y casas de huéspedes, y departamentos y casas amueblados con servicios de hoteleríaT "
+7223,Servicios de preparación de alimentos por encargoT 
+7224,"Centros nocturnos, bares, cantinas y similaresT "
+7225,Servicios de preparación de alimentos y bebidas alcohólicas y no alcohólicasT 
+8111,Reparación y mantenimiento de automóviles y camionesT 
+8112,Reparación y mantenimiento de equipo electrónico y de equipo de precisiónT 
+8113,"Reparación y mantenimiento de maquinaria y equipo agropecuario, industrial, comercial y de serviciosT "
+8114,Reparación y mantenimiento de artículos para el hogar y personalesT 
+8121,"Salones y clínicas de belleza, baños públicos y bolerías "
+8122,Lavanderías y tintorerías 
+8123,Servicios funerarios y administración de cementerios 
+8124,Estacionamientos y pensiones para vehículos automotores 
+8129,Servicios de revelado e impresión de fotografías y otros servicios personales 
+8131,"Asociaciones y organizaciones comerciales, laborales, profesionales y recreativas "
+8132,"Asociaciones y organizaciones religiosas, políticas y civiles "
+8141,Hogares con empleados domésticosT 
+9311,Órganos legislativos 
+9312,Administración pública en general 
+9313,Regulación y fomento del desarrollo económico 
+9314,Impartición de justicia y mantenimiento de la seguridad y el orden público 
+9315,Regulación y fomento de actividades para mejorar y preservar el medio ambiente 
+9316,Actividades administrativas de instituciones de bienestar social 
+9317,Relaciones exteriores 
+9318,Actividades de seguridad nacional 
+9321,Organismos internacionales y extraterritoriales 

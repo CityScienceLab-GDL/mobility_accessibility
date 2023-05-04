@@ -1,7 +1,7 @@
 /**
 * Name: constants
 *  
-* Author: Gamaliel Palomo
+* Author: Gamaliel Palomo, Juan Alvarez, Arnaud Grignard
 * Tags: 
 */
 
@@ -30,6 +30,7 @@ global{
 	string night_activities_csv_filename <- "/night_activities.csv";
 	string knowledge_activities_csv_filename <- "/knowledge_activities.csv";
 	string interaction_places_csv_filename <- "/interaction_places.csv";
+	string third_places_csv_filename <- "/third_places.csv";
 	
 	//List of files that are used to simulate the people flows in the case of cultural events
 	string events_roads_filename <- main_shp_path + "events/roads.shp";
@@ -173,6 +174,8 @@ global{
 	float distance2culture 		<- 200#m;
 	float distance2education 	<- 200#m;
 	
+	float mean_family_size <- 2.7;
+	
 	
 	//New version
 	
@@ -183,6 +186,8 @@ global{
 	map<string,int> health_distances <- ["Centro de Sallud Urbano (SSA)"::1000,"Clínica Hospitall"::10000,"Consultorio Privadol"::1000,"Hospital Privado"::10000,"Hospital General"::10000,"Hospital General (SSA)l"::10000,"Laboratorio"::10000,"Unidad de Medicina Familiar"::5000,"Unidad de Medicina Familiar (IMSS)"::5000];
 	map<string,int> sports_distances <- ["Equipamiento deportivo"::1000];
 	
+	int delay_before_export_data 			<- 100;
+	int delay_before_update_heatmap 	<- 50;
 	
 	//Variables related to heatmap
 	map<string,list<string>> heatmap_names <- ["facilities"::["health","culture","education","sports"],"population/housing"::["population_density","mobility"],"activities_density"::["day_density","night_density","knowledge_density","interaction_density"],"activities_diversity"::["day_diversity","night_diversity","knowledge_diversity"]];
