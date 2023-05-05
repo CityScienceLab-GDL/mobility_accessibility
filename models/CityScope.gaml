@@ -8,10 +8,12 @@
 /*
  * HISTORY
  * gama-may04   Create history and add some changes to not allowing change the heatmap from mqtt messages (for now)
+ * gama-issue14-may05	Remove the skill moving from people as now the moving agents are cars. People are just used to compute indicators
  */
 
 model CityScope
 import "constants.gaml"
+import "Traffic_model.gaml"
 
 
 global skills:[network]{
@@ -73,7 +75,7 @@ global skills:[network]{
 	map roads_weight;
 	
 	//Network variables
-	bool enable_mqtt <- true parameter:"Enable MQTT" category:"Functionality";
+	bool enable_mqtt <- false parameter:"Enable MQTT" category:"Functionality";
 	string mqtt_server_name <- "localhost";
 	string mqtt_topic <- "cityscope_table";
 	
@@ -171,15 +173,33 @@ global skills:[network]{
 		
 		
 		//-----------   Create environment agents from scenario 1
-		create roads from:s1_roads_shp with:[from_scenario::1];
-		create aux_roads from:s1_aux_roads_shp with:[from_scenario::1, length::float(read("largo_m"))];
-		create aux_roads from:s2_aux_roads_shp with:[from_scenario::2, length::float(read("largo_m"))];
+		//gama-issue14-may05 Deleted create roads, and roads_netwok as they are not used anymore.
 		create blocks from:s1_blocks_shp with:[id::read("ID_BLOCK"),from_scenario::1,nb_people::int(read("POB1")),block_area::float(read("area_m2")),viv_type::read("TIPO_VIVIE"), nb_households::int(read("VIVTOTAL"))]{
 			create people number:int(nb_people/5) with:[home_block::self,target_block::one_of(blocks-self)]{
 				from_scenario <- 1;
 				home_point <- any_location_in(home_block);
 				location <- home_point;
 				mobility_type <- select_mobility_mode();
+				create car{																												//gama-issue14-may05->
+					self.home_point <- myself.home_point;
+					self.home_block <- myself.home_block;
+					self.target_block <- myself.target_block;
+					max_speed <- 160 #km / #h;
+					vehicle_length <- 4.0 #m;
+					right_side_driving <- true;
+					proba_lane_change_up <- 0.1 + (rnd(500) / 500);
+					proba_lane_change_down <- 0.5 + (rnd(500) / 500);
+					location <- self.home_point;
+					security_distance_coeff <- 5 / 9 * 3.6 * (1.5 - rnd(1000) / 1000);
+					proba_respect_priorities <- 1.0 - rnd(200 / 1000);
+					proba_respect_stops <- [1.0];
+					proba_block_node <- 0.0;
+					proba_use_linked_road <- 0.0;
+					max_acceleration <- 5 / 3.6;
+					speed_coeff <- 1.2 - (rnd(400) / 1000);
+					threshold_stucked <- int((1 + rnd(5)) #mn);
+					proba_breakdown <- 0.00001;
+				}																															//<-gama-issue14-may05
 			}
 			create household number:nb_households with:[location::any_location_in(self),from_scenario::1] returns:tmp_my_households;
 			if tmp_my_households != nil{
@@ -188,12 +208,9 @@ global skills:[network]{
 				}
 				tmp_my_households <- [];
 			}
-			
-			//nb_households <- int(nb_people / mean_family_size);
 		}
 		
 		current_active_blocks <- list(blocks);
-		
 		
 		create economic_unit from:economic_activities_shp with:[from_scenario::1,activity_id::read("codigo_act"),sub_id::read("sec_sub")];
 		create equipment from:s1_equipment_shp with:[type::string(read("tipo_equip")),subtype::string(read("cat_sedeso")),from_scenario::1];
@@ -218,12 +235,7 @@ global skills:[network]{
 		//create base_grid from:s2_grid_shp with:[night_diversity::float(read("ID_NOCHE")),day_diversity::float(read("ID_DIA")),knowledge_diversity::float(read("ID_CONOCIM")),from_scenario::2];
 		
 		//------------ Create environment agents from scenario Event
-		create roads from:events_roads_shp with:[from_scenario::4];
-		
-		event_roads_weight <- roads where(each.from_scenario=4) as_map (each::each.shape.perimeter);
-		//event_roads_network <- as_edge_graph(roads where(each.from_scenario="event")); 
-		event_roads_network <- roads where(each.from_scenario=4) as_intersection_graph 1.0 with_weights event_roads_weight;
-		create entry_point from:events_entry_points_shp with:[rate::int(read("porcentaje"))];
+		// gama-issue14-may05 Deleted the creation of event_network as the road network is going to be initiated by the mobility model
 		create event_location from:events_location_points_shp with:[capacity::int(read("avg_asiste"))];
 		
 		//This is to init individual indicators of people
@@ -248,10 +260,6 @@ global skills:[network]{
 			ind_public_transport_coverage <- transport_accessibilty_count >=3;
 			
 		}		
-		
-		//Create road network
-		roads_weight <- roads where(each.from_scenario=1) as_map (each:: each.shape.perimeter);
-		roads_network <- roads where(each.from_scenario=1) as_intersection_graph 1.0 with_weights roads_weight;
 		
 		//Create satellital image
 		create satellite_background from:dcu_satellite_shp;
@@ -387,16 +395,21 @@ global skills:[network]{
 		sports_facilities			<- equipment where(each.type="Deporte");
 		
 		list<people>valid_people;
+		list<car> valid_cars;
 		list<economic_unit> valid_unit;
 		ask ccu_limit{
 			ccu_heatmap 				<- heatmap inside(self+50);
 			ref_grid					<- base_grid inside(self +100);
 			valid_people <- people inside self;
+			valid_cars <- car inside self;
 			valid_unit <- economic_unit inside self;
 			current_active_households <- raw_current_active_households inside self;
 		}
 		ask people{
 			if not (self in valid_people){to_be_killed <- true;}
+		}
+		ask car{
+			if not(self in valid_cars){to_be_killed <- true;}
 		}
 		/*ask economic_unit{
 			if not(self in valid_unit){do die;}
@@ -625,7 +638,7 @@ global skills:[network]{
 			dash_hab_net_density[0],
 			dash_hab_net_density[0],
 			dash_day_activities_diversity[0]
-		] to:"../output/output_s1.csv" type:"csv" rewrite:false;
+		] to:"output_s1.csv" format:"csv" rewrite:false;
 	}
 	reflex export_data_sc2 when:allow_export_data_sc2{
 		//Scenario 2
@@ -672,7 +685,7 @@ global skills:[network]{
 			dash_hab_net_density[1],
 			dash_hab_net_density[1],
 			dash_day_activities_diversity[1]
-		] to:"../output/output_s2.csv" type:"csv" rewrite:true;
+		] to:"output_s2.csv" format:"csv" rewrite:true;
 		allow_export_data_sc2 <- false;
 	}
 	reflex compute_current_data when:allow_export_current_data{
@@ -720,8 +733,7 @@ global skills:[network]{
 				dash_hab_net_density[2],
 				dash_day_activities_diversity[2],
 				1
-				
-			] to:"../output/output_radar_active.csv" type:"csv" rewrite:true header:false;
+			] to:"output_radar_active.csv" format:"csv" rewrite:true header:false;
 			
 			save data:[
 				dash_educational_equipment_proximity[2],
@@ -730,7 +742,7 @@ global skills:[network]{
 				dash_cultural_equipment_proximity[2],
 				dash_cultural_equipment_proximity[2],
 				1
-			] to:"../output/output_facilities_proximity_active.csv" type:"csv" rewrite:true header:false;
+			] to:"output_facilities_proximity_active.csv" format:"csv" rewrite:true header:false;
 			
 			save data:[
 				
@@ -739,8 +751,7 @@ global skills:[network]{
 				dash_interaction_density[2],
 				dash_knowledge_density[2],
 				1
-				
-			] to:"../output/output_activities_density_active.csv" type:"csv" rewrite:true header:false;
+			] to:"output_activities_density_active.csv" format:"csv" rewrite:true header:false;
 			
 			save data:[
 				dash_km_ways_per_km2[2],
@@ -748,7 +759,7 @@ global skills:[network]{
 				dash_km_ways_per_km2[2],
 				dash_day_activities_diversity[2],
 				1
-			] to:"../output/output_walkability_active.csv" type:"csv" rewrite:true header:false;
+			] to:"output_walkability_active.csv" format:"csv" rewrite:true header:false;
 			allow_export_current_data<- false;
 		}
 	}
@@ -764,33 +775,8 @@ global skills:[network]{
 			do activate_scenario(2);
 		}
 	}
-	//Function created to create paths from blocks to blocks
-	action pathfinder{
-		int valid <- 0;
-		int invalid <- 0;
-		map<string,bool> computed;
-		loop i over:blocks{
-			bool is_valid <- true;
-			loop j over:blocks{
-				if i!=j and not (computed[string(j)+string(i)]){
-					roads closest_road <- roads closest_to i;
-					point starting_point <- closest_road.shape.points closest_to i;
-					roads finish_road <- roads closest_to j;
-					point finish_point <- finish_road.shape.points closest_to j;
-					path the_path <- path_between(roads_network,starting_point,finish_point);
-					if the_path != nil { valid <- valid +1;add string(i)+string(j)::the_path to:paths;	add string(i)+string(j)::true to:computed;}
-					else{
-						is_valid <- false;
-						invalid <- invalid + 1;	
-					}
-				}
-				write "--------------------";
-				write "Valid paths: "+valid;
-				write "Invalid paths: "+invalid;
-			}
-			i.valid <- is_valid;
-		}
-	}
+	
+	//gama-issue14-may05 Deleted function path_finder as it is not needed
 	
 	action show_satellite_action{
 		show_satellite <- !show_satellite;
@@ -1688,6 +1674,7 @@ species project{
 	int green_area;
 	list<economic_unit> my_new_activities;
 	list<people> new_people;
+	list<car> new_cars;
 	//Function to be eliminated
 	/*action create_new_population{
 		blocks my_block <- first(blocks where(each.from_scenario=from_scenario and each.id=block_id));
@@ -1734,6 +1721,7 @@ species project{
 			nb_people <- myself.population;
 			nb_households <- nb_households + viv_eco + viv_med + viv_res;
 			write "project "+myself.letter+ " adding "+nb_people+" people";
+			list<car> tmp_cars_list;
 			create people number:self.nb_people/5 returns:arriving_people with:[
 				target_block::one_of(current_active_blocks-self),
 				from_scenario::myself.from_scenario
@@ -1743,14 +1731,38 @@ species project{
 				location <- home_point;
 				mobility_type <- select_mobility_mode();
 				do compute_mobility_accessibility();
+				create car{																															//gama-issue14-may05->
+					home_point <- myself.home_point;
+					home_block <- myself.home_block;
+					target_block <- myself.target_block;
+					max_speed <- 160 #km / #h;
+					vehicle_length <- 5.0 #m;
+					right_side_driving <- true;
+					proba_lane_change_up <- 0.1 + (rnd(500) / 500);
+					proba_lane_change_down <- 0.5 + (rnd(500) / 500);
+					location <- one_of(intersection where empty(each.stop)).location;
+					security_distance_coeff <- 5 / 9 * 3.6 * (1.5 - rnd(1000) / 1000);
+					proba_respect_priorities <- 1.0 - rnd(200 / 1000);
+					proba_respect_stops <- [1.0];
+					proba_block_node <- 0.0;
+					proba_use_linked_road <- 0.0;
+					max_acceleration <- 5 / 3.6;
+					speed_coeff <- 1.2 - (rnd(400) / 1000);
+					threshold_stucked <- int((1 + rnd(5)) #mn);
+					proba_breakdown <- 0.00001;
+					tmp_cars_list << self;
+				}																																		//<-gama-issue14-may05
+				
 			}
 			myself.new_people <- arriving_people;
+			myself.new_cars <- tmp_cars_list; //gama-issue14-may05
 		}
 		//Activar aquí áreas verdes
 	}
 	action deactivate{
 		ask my_new_activities{do die;}
 		ask new_people {to_be_killed <- true;}
+		ask new_cars {to_be_killed <- true;} //gama-issue14-may05
 		list<blocks> blocks_tbr <- current_active_blocks where(each.id=block_id);
 		ask blocks_tbr{
 			remove self from:current_active_blocks;
@@ -1849,23 +1861,6 @@ species intervention_area{
 	}
 }
 //***********************************************************
-
-
-species car skills:[moving]{
-	int from_scenario;
-	event_location my_event;
-	reflex move_towards_event when:(from_scenario=4){
-		if location = my_event.location{
-			do die;
-		}
-		else{
-			do goto target:my_event on:event_roads_network speed:0.05;
-		}
-	}
-	aspect default{
-		draw circle(5) color:#white;
-	}
-}
 
 //Entry points
 species entry_point{
@@ -2130,7 +2125,7 @@ species blocks{
 	
 	aspect default{
 		if self in current_active_blocks and not show_satellite{
-			draw shape color:rgb(100,100,100,0.2) border:#blue width:5.0;
+			draw shape color:rgb(100,100,100,0.2) border:#gray width:5.0;
 		}
 		//draw shape wireframe:false color:valid?#green:#red;// border:#blue;
 	}
@@ -2171,7 +2166,7 @@ species satellite_background{
 	}
 }
 
-species people skills:[moving]{
+species people{// skills:[moving]{
 	
 	//Related to individual indicators
 	float mobility_accessibility <- 0.0;
@@ -2190,8 +2185,6 @@ species people skills:[moving]{
 	point home_point;
 	blocks target_block;
 	point target_point;
-	path roads_path;
-	list<point> my_path;
 	int point_counter <- 0;
 	string current_destinity <- "work" among:["home","work"];
 	map<date,string> agenda_day;
@@ -2234,70 +2227,8 @@ species people skills:[moving]{
 		return one_of(student_mobility_percentages.keys);
 	}
 
-	//First, we obtain the path from the map
-	action init_path{
-		bool reverse <- false;
-		path tmp_path <- paths[string(home_block)+string(target_block)];
-		if tmp_path = nil{
-			reverse <- true;
-			tmp_path <- paths[string(target_block)+string(home_block)];
-		}
-		do build_path_as_a_list(tmp_path);
-		if reverse{do reverse_path;}
-	}
-	
-	//Then, we transform the path to a list of points (to be followed
-	action build_path_as_a_list(path the_path){
-		loop r over:list(the_path){
-			loop p over:r.shape.points{
-				add p to:my_path;
-			}
-		}
-	}
-	
-	//This function aims to reverse the current list of points (path)	
-	action reverse_path{
-		list<point> new_path;
-		loop i from:0 to: length(my_path)-1{
-			add my_path[length(my_path)-1-i] to:new_path;
-		}
-	}
-	//This reflex controls the agent's activities to do during the day
-	reflex update_agenda when: (every(#day)) or empty(agenda_day){
-		agenda_day <- [];
-		point the_activity_location <- any_location_in(target_block);
-		int activity_time <- rnd(2,12);
-		int init_hour <- rnd(6,12);
-		int init_minute <- rnd(0,59);
-		date activity_date <- date(current_date.year,current_date.month,current_date.day,init_hour,init_minute,0);
-		agenda_day <+ (activity_date::"activity");
-		activity_date <- activity_date + activity_time#hours;
-		init_minute <- rnd(0,59);
-		activity_date <- activity_date + init_minute#minutes;
-		agenda_day <+ (activity_date::"home");
-	}
-	reflex update_activity when:not dead(self) and not empty(agenda_day){
-		try{
-			if after(agenda_day.keys[0]) {
-		  	string current_activity <-agenda_day.values[0];
-			target_point <- current_activity = "activity"?any_location_in(target_block):any_location_in(home_block);
-			agenda_day>>first(agenda_day);
-			currently_moving <- true;
-	 	 }
-	}
-	  
- }
-	
-	
-	//This reflex controls the action of moving from point A to B
-	reflex moving{
-		if location != target_point and currently_moving{
-			do goto target:target_point on:roads_network speed:0.1;
-		}
-		else if currently_moving and location=target_point{
-			currently_moving <- false;
-		}
-	}
+	//gama-issue14-may05 Removed all functions that compute paths, or edit them, etc. We do not use road networks in this model anymore.
+	//gama-issue14-may05 Also removed functions related to agenda as people will not move.
 	reflex kill_agent when: to_be_killed{
 		do die;
 	}
@@ -2321,9 +2252,9 @@ species grid_paths{
 
 
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
-experiment CCU_1_1000 type:gui{
+experiment CCU_1_1000 type:gui autorun:true{
 	output{
-		display gui type:opengl background:#black axes:false  fullscreen:1{
+		display gui type:opengl background:#black axes:false  fullscreen:0{
 			camera 'default' location: {1007.3931,681.2155,1270.1296} target: {1009.0202,671.3018,0.0};
 	
 			overlay size:{0,0} position:{0.1,0.1} transparency:0.5{
@@ -2337,7 +2268,7 @@ experiment CCU_1_1000 type:gui{
 			species ccu_limit aspect:default refresh:true;
 			species blocks aspect:default;
 			species people aspect:default;
-			species car aspect:default;
+			species car aspect:default; //gama-issue14-may05
 			species heatmap aspect:heat;
 			species intervention_area aspect:default;
 			
