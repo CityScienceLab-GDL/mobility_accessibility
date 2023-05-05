@@ -9,6 +9,7 @@
  * HISTORY
  * gama-may04   Create history and add some changes to not allowing change the heatmap from mqtt messages (for now)
  * gama-issue14-may05	Remove the skill moving from people as now the moving agents are cars. People are just used to compute indicators
+ * gama-issue13-may05 Clean the file names and directories.
  */
 
 model CityScope
@@ -2254,7 +2255,7 @@ species grid_paths{
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment CCU_1_1000 type:gui autorun:true{
 	output{
-		display gui type:opengl background:#black axes:false  fullscreen:0{
+		display gui type:opengl background:#black axes:false  fullscreen:1{
 			camera 'default' location: {1007.3931,681.2155,1270.1296} target: {1009.0202,671.3018,0.0};
 	
 			overlay size:{0,0} position:{0.1,0.1} transparency:0.5{

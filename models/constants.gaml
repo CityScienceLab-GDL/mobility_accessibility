@@ -12,7 +12,7 @@ global{
 	string main_shp_path <- "../includes/shp/";
 	string main_csv_path <- "../includes/csv/";
 		
-	string entry_points_filename <- "../includes/shp/entry_points.shp";
+	string entry_points_filename <- "../includes/shp/environment/entry_points.shp";
 	string dcu_limits_filename <- "../includes/shp/environment/scenario_limits.shp";
 	string dcu_transport_filename <- "environment/paradas_transporte_publico_dcu.shp";
 	string dcu_massive_transport_filename <- "environment/estaciones_transporte_masivo_dcu.shp";

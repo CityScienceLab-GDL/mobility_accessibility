@@ -14,8 +14,8 @@ global {
 	bool  display3D<- false;
 	
 	//Check if we use simple data or more complex roads
-	file shape_file_roads <-  file("../includes/shp/events/roads_testLepe_may04.shp");
-	file shape_file_nodes <- file("../includes/shp/events/nodes_testLepe_may04.shp");
+	file shape_file_roads <-  file("../includes/shp/events/roads.shp");
+	file shape_file_nodes <- file("../includes/shp/events/nodes.shp");
 	geometry shape <- envelope(shape_file_roads) + 50.0;
 	graph road_network;
 	int nb_people <- 200;
@@ -301,45 +301,3 @@ species car skills: [advanced_driving] {
 		}
 
 	} }
-
-experiment experiment_city type: gui {
-	parameter "if true, 3D display, if false 2D display:" var: display3D category: "GIS";
-	
-	action _init_{
-		create simulation with:[
-			shape_file_roads::file("../includes/shp/events/roads_testLepe_may04.shp"), 
-			shape_file_nodes::file("../includes/shp/events/nodes_testLepe_may04.shp"),
-			nb_people::200
-		];
-	}
-	output {
-		display Main type: opengl synchronized: true background: #gray{
-			species road ;
-			species intersection ;
-			species car ;
-		}
-	}
-
-}
-
-experiment experiment_ring type: gui {
-	parameter "if true, 3D display, if false 2D display:" var: display3D category: "GIS";
-	
-	action _init_{
-		create simulation with:[
-			shape_file_roads::file("../includes/shp/events/RoadCircleLanes.shp"), 
-			shape_file_nodes::file("../includes/shp/events/NodeCircleLanes.shp"),
-			nb_people::20
-		];
-	}
-	output {
-		display Main type: opengl synchronized: true background: #gray{
-			species road ;
-			species intersection ;
-			species car ;
-		}
-
-	}
-
-}
-
