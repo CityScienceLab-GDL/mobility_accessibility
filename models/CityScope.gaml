@@ -68,6 +68,7 @@ global skills:[network]{
 	//Simulation parameters
 	geometry shape <- envelope(dcu_limit_shp);
 	float incoming_people_rate <- 0.1 min:0.0 max:1.0 parameter:"Incoming people rate" category:"Functionality"; //gama-issue14-may10   Number of people per second that appears at each entry point
+	bool telmex_event <- false parameter:"Telmex event" category:"Functionality";
 	//int scenario <- 1;
 	
 	
@@ -220,7 +221,7 @@ global skills:[network]{
 		
 		//------------ Create environment agents from scenario Event
 		// gama-issue14-may05 Deleted the creation of event_network as the road network is going to be initiated by the mobility model
-		create event_location from:events_location_points_shp with:[capacity::int(read("avg_asiste"))];
+		create cultural_event from:events_location_points_shp with:[capacity::int(read("avg_asiste"))];
 		create entry_point from:events_entry_points_shp;
 		
 		//This is to init individual indicators of people
@@ -499,7 +500,8 @@ global skills:[network]{
 	reflex incoming_people when:every(10#second){																															//gama-issue14-may10->
 		ask entry_point{
 			if flip(incoming_people_rate){
-				create car number:2{																																								
+				create car number:5{
+					source_sc <- "incoming";																																				
 					target_block <- one_of(blocks);
 					max_speed <- 40 #km / #h;
 					vehicle_length <- 4.0 #m;
@@ -519,7 +521,33 @@ global skills:[network]{
 				}	
 			}
 		}
-	}																																																		//<-gama-issue14-may10
+	}				
+	
+	reflex cultural_event_people when:telmex_event{
+		ask entry_point{
+			if flip(incoming_people_rate){
+				create car number:5{
+					source_sc <- "cultural event";																																				
+					target_block <- one_of(blocks);
+					max_speed <- 40 #km / #h;
+					vehicle_length <- 4.0 #m;
+					right_side_driving <- true;
+					proba_lane_change_up <- 0.1 + (rnd(500) / 500);
+					proba_lane_change_down <- 0.5 + (rnd(500) / 500);
+					location <- (intersection where empty(each.stop) closest_to myself).location;
+					security_distance_coeff <- 5 / 9 * 3.6 * (1.5 - rnd(1000) / 1000);
+					proba_respect_priorities <- 1.0 - rnd(200 / 1000);
+					proba_respect_stops <- [1.0];
+					proba_block_node <- 0.0;
+					proba_use_linked_road <- 0.0;
+					max_acceleration <- 5 / 3.6;
+					speed_coeff <- 1.2 - (rnd(400) / 1000);
+					threshold_stucked <- int((1 + rnd(5)) #mn);
+					proba_breakdown <- 0.00001;
+				}	
+			}
+		}
+	}																																														//<-gama-issue14-may10
 	
 	action activate_scenario1{
 		reset_counter <- true;
@@ -1847,7 +1875,8 @@ species intervention_area{
 species entry_point{
 	float rate <- 0.0;
 }
-species event_location{
+species cultural_event{
+	string event_name;
 	int capacity;
 	int current_people <- 0;
 }
@@ -2242,6 +2271,7 @@ species people{// skills:[moving]{
 				agenda_day>>first(agenda_day);
 				//write ""+name+":"+"creating a car";
 				create car{																												//gama-issue14-may08->
+					source_sc <- "activities";
 					target_block <- myself.target_block;
 					max_speed <- 40 #km / #h;
 					vehicle_length <- 4.0 #m;

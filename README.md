@@ -8,9 +8,9 @@ https://docs.google.com/document/d/11-tBWJIrPP4n7MY_YY8PRk199f8zGyrLWelPygVYas0/
 
 Instructions:
 
-1. Download Gama platfor 1.9 (https://gama-platform.org/download) and install it on your computer.
-2. Clone this github repository (branch "estable").
+1. Download Gama platform 1.9 (https://gama-platform.org/download) and install it on your computer.
+2. Clone this github repository (branch "master").
 3. Open Gama Platform and select as a workspace the directory where you cloned the repository.
 4. Open the model "CityScope.gaml".
 5. In case you are using an external method to update the simulation, use mqtt. Download an MQTT server and keep it running (for example:https://mosquitto.org/download/ ). Change the variable enable_mqtt to true.
-6. Clic on CCU_1_1000.
+6. Clic on Run CityScope.

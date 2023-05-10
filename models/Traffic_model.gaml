@@ -183,6 +183,7 @@ species road skills: [skill_road] {
 //Car species that will move on the graph of roads to a target and using the driving skill
 species car skills: [advanced_driving] {
 	
+	string source_sc; //source scenario among ["activities", "incoming","cultural event"]	
 	rgb color <- rnd_color(255);
 	int counter_stucked <- 0;
 	int threshold_stucked;
@@ -259,7 +260,16 @@ species car skills: [advanced_driving] {
 			if (breakdown) {
 				draw circle(1) at: loc color: #red;
 			}
-			}else {
+			}
+			else if source_sc = "cultural event"{
+				rgb my_color <- #green;
+			    draw circle(vehicle_length*0.5) color:my_color;
+			}
+			else if source_sc = "incoming"{
+				rgb my_color <- #yellow;
+			    draw circle(vehicle_length*0.5) color:my_color;
+			}
+			else {
 				rgb my_color <- breakdown?#red:rgb(255,255,255,0.7);
 				draw circle(vehicle_length*0.5) color:my_color;// rotate: heading + 90;
 			}

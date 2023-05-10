@@ -189,6 +189,9 @@ global{
 	int delay_before_export_data 			<- 100;
 	int delay_before_update_heatmap 	<- 50;
 	
+	int nb_people_prop <- 5;
+	
+	
 	//Variables related to heatmap
 	map<string,list<string>> heatmap_names <- ["facilities"::["health","culture","education","sports"],"population/housing"::["population_density","mobility"],"activities_density"::["day_density","night_density","knowledge_density","interaction_density"],"activities_diversity"::["day_diversity","night_diversity","knowledge_diversity"]];
 	
