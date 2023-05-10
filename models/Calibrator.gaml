@@ -1,9 +1,14 @@
 /**
 * Name: Calibrator
 * Based on the internal empty template. 
-* Author: gamaa
+* Author: Gamaliel Palomo
 * Tags: 
 */
+
+/*
+ * HISTORY
+ * gama-issue20-may09 Change things to make this model run on gama 1.9
+ */
 
 
 model Calibrator
@@ -11,7 +16,7 @@ import "constants.gaml"
 
 global{
 	file margins_shp <- file(main_shp_path+"environment/scenario_limits.shp");
-	file blocks_shp <- file(main_shp_path+"scenario1/poligonos.shp");
+	file blocks_shp <- file(main_shp_path+"scenario1/blocks.shp"); //gama-issue20-may09
 	geometry shape <- envelope(margins_shp);
 	float delta <- 0.01;
 	float location_x <- 1006.2548;
@@ -67,12 +72,12 @@ experiment gui{
 			species limits aspect:default;
 			species blocks aspect:default;
 			
-			event w action:add_y;
-			event s action:sub_y;
-			event a action:sub_x;
-			event d action:add_x;
-			event q action:sub_z;
-			event e action:add_z;
+			event "w" action:add_y;				//gama-issue20-may09->
+			event "s" action:sub_y;
+			event "a" action:sub_x;
+			event "d" action:add_x;
+			event "q" action:sub_z;
+			event "e" action:add_z;					//<-gama-issue20-may09
 		}
 	}
 	

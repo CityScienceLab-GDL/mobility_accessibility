@@ -1,11 +1,18 @@
 /**
 * Name: Complex Road Network 
-* Author: Patrick Taillandier
+* Author: Patrick Taillandier, Gamaliel Palomo (adaptation to CityScope@GDL)
 * Description: Model to show how to use the driving skill to represent the traffic on a road network imported from shapefiles (generated, for the city, with 
 * OSM Loading Driving), with intersections and traffic lights going from red to green to let people move or stop. Two experiments are presented : one concerning a 
 * a simple ring network and the other a real city network.
 * Tags: gis, shapefile, graph, agent_movement, skill, transport
 */
+
+/*
+ * HISTORY
+ * gama-issue14-may08 Work on integration between Traffic model and CityScope. Now when a person needs to move due to the scheduler, it creates a car agent which makes de driving behavior.
+ */
+ 
+ 
 model RoadTrafficComplex
 import "constants.gaml"
 import "CityScope.gaml"
@@ -60,24 +67,6 @@ global {
 		//initialize the traffic light
 		ask intersection {
 			do initialize;
-		}
-
-		create car number: nb_people {
-			max_speed <- 160 #km / #h;
-			vehicle_length <- 5.0 #m;
-			right_side_driving <- true;
-			proba_lane_change_up <- 0.1 + (rnd(500) / 500);
-			proba_lane_change_down <- 0.5 + (rnd(500) / 500);
-			location <- one_of(intersection where empty(each.stop)).location;
-			security_distance_coeff <- 5 / 9 * 3.6 * (1.5 - rnd(1000) / 1000);
-			proba_respect_priorities <- 1.0 - rnd(200 / 1000);
-			proba_respect_stops <- [1.0];
-			proba_block_node <- 0.0;
-			proba_use_linked_road <- 0.0;
-			max_acceleration <- 5 / 3.6;
-			speed_coeff <- 1.2 - (rnd(400) / 1000);
-			threshold_stucked <- int((1 + rnd(5)) #mn);
-			proba_breakdown <- 0.00001;
 		}
 
 	}
@@ -193,97 +182,84 @@ species road skills: [skill_road] {
 
 //Car species that will move on the graph of roads to a target and using the driving skill
 species car skills: [advanced_driving] {
+	
 	rgb color <- rnd_color(255);
 	int counter_stucked <- 0;
 	int threshold_stucked;
 	bool breakdown <- false;
 	float proba_breakdown;
-	intersection target;
-
-	//characteristics that came from people
-	blocks home_block;
-	point home_point;
-	blocks target_block;
+	intersection target;												//gama-issue14-may08->
 	point target_point;
-	map<date,string> agenda_day;
-	string mobility_type;
+	blocks target_block;
 	bool to_be_killed <- false;
+	bool is_visible <- false;
 	
-	reflex kill_agent when: to_be_killed{
-		do die;
-	}
+	list<intersection> tested_targets <- [];
+	list<intersection> tested_locations <- [];
 	
-	//This reflex controls the agent's activities to do during the day
-	reflex update_agenda when: (every(#day)) or empty(agenda_day){
-		agenda_day <- [];
-		point the_activity_location <- any_location_in(target_block);
-		int activity_time <- rnd(2,12);
-		int init_hour <- rnd(6,12);
-		int init_minute <- rnd(0,59);
-		date activity_date <- date(current_date.year,current_date.month,current_date.day,init_hour,init_minute,0);
-		agenda_day <+ (activity_date::"activity");
-		activity_date <- activity_date + activity_time#hours;
-		init_minute <- rnd(0,59);
-		activity_date <- activity_date + init_minute#minutes;
-		agenda_day <+ (activity_date::"home");
-	}
-	reflex update_activity when:not dead(self) and not empty(agenda_day){
-		try{
-			if after(agenda_day.keys[0]) {
-		  	string current_activity <-agenda_day.values[0];
-			target_point <- current_activity = "activity"?any_location_in(target_block):any_location_in(home_block);
-			agenda_day>>first(agenda_day);
-	 	 }
-	}
-	  
- }
+	string mobility_type;										//<-gama-issue14-may08
 	
 	reflex breakdown when: flip(proba_breakdown) {
 		breakdown <- true;
 		max_speed <- 1 #km / #h;
 	}
-
-	reflex time_to_go when: final_target = nil  and target_point!=nil{
+	reflex time_to_go when: final_target = nil {																					//gama-issue14-may08->
 		using topology(world){
 			target_point <- any_location_in(target_block);
 			target <- intersection closest_to target_point;
 			current_path <- compute_path(graph: road_network, target: target);
 			if (current_path = nil) {
-				location <- one_of(intersection).location;
-				//location <-( intersection closest_to self).location;
-			} 
-		}
-		
-	}
-
-	reflex move when: current_path != nil and final_target != nil {
-		do drive;
-		if (final_target != nil) {
-			if real_speed < 5 #km / #h {
-				counter_stucked <- counter_stucked + 1;
-				if (counter_stucked mod threshold_stucked = 0) {
-					proba_use_linked_road <- min([1.0, proba_use_linked_road + 0.1]);
+				intersection tmp_intersection <- (intersection-tested_targets) closest_to self;
+				location <- tmp_intersection.location;
+				tested_targets<<tmp_intersection;
+				if intersection-tested_targets = []{
+					to_be_killed <- true;
 				}
-	
-			} else {
-				counter_stucked <- 0;
-				proba_use_linked_road <- 0.0;
+			} 
+			else {
+				is_visible <- true;
 			}
 		}
+		
+	}																																							//<-gama-issue14-may08	
+	reflex move when: current_path != nil and final_target != nil and not dead(self){
+		
+		try{
+			do drive;
+			if final_target = nil{
+				to_be_killed <- true;
+			}
+			else if (final_target != nil) {
+				if real_speed < 5 #km / #h {
+					counter_stucked <- counter_stucked + 1;
+					if (counter_stucked mod threshold_stucked = 0) {
+						proba_use_linked_road <- min([1.0, proba_use_linked_road + 0.1]);
+					}
+		
+				} else {
+					counter_stucked <- 0;
+					proba_use_linked_road <- 0.0;
+				}
+			}			
+		}
 	}
-
+	reflex kill_agent when: to_be_killed{					//gama-issue14-may08->
+		do die;
+	}																				//<-gama-issue14-may08
+	
 	aspect default {
-		if (display3D) {
+		if is_visible{
+			if (display3D) {
 			point loc <- calcul_loc();
 			draw rectangle(1,vehicle_length) + triangle(1) rotate: heading + 90 depth: 1 color: color at: loc;
 			if (breakdown) {
 				draw circle(1) at: loc color: #red;
 			}
-		}else {
-			rgb my_color <- breakdown?#red:rgb(255,255,255,0.7);
-			draw circle(vehicle_length*0.5) color:my_color;// rotate: heading + 90;
-		}
-		
+			}else {
+				rgb my_color <- breakdown?#red:rgb(255,255,255,0.7);
+				draw circle(vehicle_length*0.5) color:my_color;// rotate: heading + 90;
+			}
+		}		
 	}
 
 	point calcul_loc {
