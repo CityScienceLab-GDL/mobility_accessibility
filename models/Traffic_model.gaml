@@ -209,11 +209,15 @@ species car skills: [advanced_driving] {
 			target <- intersection closest_to target_point;
 			current_path <- compute_path(graph: road_network, target: target);
 			if (current_path = nil) {
-				intersection tmp_intersection <- (intersection-tested_targets) closest_to self;
-				location <- tmp_intersection.location;
-				tested_targets<<tmp_intersection;
 				if intersection-tested_targets = []{
-					to_be_killed <- true;
+					target <- one_of(intersection);
+					location <- one_of(intersection).location;
+					current_path <- compute_path(graph: road_network, target: target);
+				}
+				else{
+					intersection tmp_intersection <- (intersection-tested_targets) closest_to self;
+					location <- tmp_intersection.location;
+					tested_targets<<tmp_intersection;
 				}
 			} 
 			else {

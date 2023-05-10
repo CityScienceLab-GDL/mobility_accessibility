@@ -1,6 +1,6 @@
 /**
 * Name: CityScope.gaml
-* Based on the internal empty template. 
+* CityScope Guadalajara, case study: University Cultural District
 * Author: Gamaliel Palomo, Juan Alvarez, Arnaud Grignard
 * Tags: 
 */
@@ -11,6 +11,7 @@
  * gama-issue14-may05	Remove the skill moving from people as now the moving agents are cars. People are just used to compute indicators
  * gama-issue13-may05 Clean the file names and directories.
  * gama-issue14-may08 Work on integration between Traffic model and CityScope. Now when a person needs to move due to the scheduler, it creates a car agent which makes de driving behavior.
+ * gama-issue14-may10 People enters the zone via the entry points at an specific rate.
  */
 
 model CityScope
@@ -66,6 +67,7 @@ global skills:[network]{
 	
 	//Simulation parameters
 	geometry shape <- envelope(dcu_limit_shp);
+	float incoming_people_rate <- 0.1 min:0.0 max:1.0 parameter:"Incoming people rate" category:"Functionality"; //gama-issue14-may10   Number of people per second that appears at each entry point
 	//int scenario <- 1;
 	
 	
@@ -157,8 +159,8 @@ global skills:[network]{
 	init{
 		
 		//Simulation specific variables
-		step 					<- 1#seconds;
-		starting_date 	<- date("2022-11-26 06:00:00");
+		step 					<- 2#seconds;
+		starting_date 	<- date("2023-05-16 07:00:00");
 		
 		//Initialize MQTT connection
 		if (enable_mqtt){
@@ -177,7 +179,7 @@ global skills:[network]{
 		//-----------   Create environment agents from scenario 1
 		//gama-issue14-may05 Deleted create roads, and roads_netwok as they are not used anymore.
 		create blocks from:s1_blocks_shp with:[id::read("ID_BLOCK"),from_scenario::1,nb_people::int(read("POB1")),block_area::float(read("area_m2")),viv_type::read("TIPO_VIVIE"), nb_households::int(read("VIVTOTAL"))]{
-			create people number:int(nb_people/5) with:[home_block::self,target_block::one_of(blocks-self)]{
+			create people number:int(nb_people/nb_people_prop) with:[home_block::self,target_block::one_of(blocks-self)]{
 				from_scenario <- 1;
 				home_point <- any_location_in(home_block);
 				location <- home_point;
@@ -219,6 +221,7 @@ global skills:[network]{
 		//------------ Create environment agents from scenario Event
 		// gama-issue14-may05 Deleted the creation of event_network as the road network is going to be initiated by the mobility model
 		create event_location from:events_location_points_shp with:[capacity::int(read("avg_asiste"))];
+		create entry_point from:events_entry_points_shp;
 		
 		//This is to init individual indicators of people
 		ask people{
@@ -493,6 +496,30 @@ global skills:[network]{
 		//allow_export_current_data <- true;
 	}
 	
+	reflex incoming_people when:every(10#second){																															//gama-issue14-may10->
+		ask entry_point{
+			if flip(incoming_people_rate){
+				create car number:2{																																								
+					target_block <- one_of(blocks);
+					max_speed <- 40 #km / #h;
+					vehicle_length <- 4.0 #m;
+					right_side_driving <- true;
+					proba_lane_change_up <- 0.1 + (rnd(500) / 500);
+					proba_lane_change_down <- 0.5 + (rnd(500) / 500);
+					location <- (intersection where empty(each.stop) closest_to myself).location;
+					security_distance_coeff <- 5 / 9 * 3.6 * (1.5 - rnd(1000) / 1000);
+					proba_respect_priorities <- 1.0 - rnd(200 / 1000);
+					proba_respect_stops <- [1.0];
+					proba_block_node <- 0.0;
+					proba_use_linked_road <- 0.0;
+					max_acceleration <- 5 / 3.6;
+					speed_coeff <- 1.2 - (rnd(400) / 1000);
+					threshold_stucked <- int((1 + rnd(5)) #mn);
+					proba_breakdown <- 0.00001;
+				}	
+			}
+		}
+	}																																																		//<-gama-issue14-may10
 	
 	action activate_scenario1{
 		reset_counter <- true;
@@ -1699,7 +1726,7 @@ species project{
 			nb_people <- myself.population;
 			nb_households <- nb_households + viv_eco + viv_med + viv_res;
 			write "project "+myself.letter+ " adding "+nb_people+" people";
-			create people number:self.nb_people/5 returns:arriving_people with:[
+			create people number:self.nb_people/nb_people_prop returns:arriving_people with:[
 				target_block::one_of(current_active_blocks-self),
 				from_scenario::myself.from_scenario
 			]{
@@ -2079,7 +2106,7 @@ species blocks{
 	
 	aspect default{
 		if self in current_active_blocks and not show_satellite{
-			draw shape color:rgb(100,100,100,0.2) border:#gray width:5.0;
+			draw shape color:rgb(100,100,100,0.2);// border:#gray width:5.0;
 		}
 		//draw shape wireframe:false color:valid?#green:#red;// border:#blue;
 	}
@@ -2190,15 +2217,20 @@ species people{// skills:[moving]{
 	//This reflex controls the agent's activities to do during the day
 	reflex update_agenda when: (every(#day)) or empty(agenda_day){
 		agenda_day <- [];
-		point the_activity_location <- any_location_in(target_block);
-		int activity_time <- rnd(2,12);
-		int init_hour <- rnd(6,12);
-		int init_minute <- rnd(0,59);
-		date activity_date <- date(current_date.year,current_date.month,current_date.day,init_hour,init_minute,0);
-		agenda_day <+ (activity_date::"activity");
-		activity_date <- activity_date + activity_time#hours;
-		init_minute <- rnd(0,59);
-		activity_date <- activity_date + init_minute#minutes;
+		int hours_for_activities <- rnd(6,10);
+		int sum <- 0;
+		int nb_activities <- rnd(6,10);
+		int hour_for_go_out <- rnd(7,22-hours_for_activities);
+		int hours_per_activity <- int(hours_for_activities/nb_activities);
+		date activity_date <- date(current_date.year,current_date.month,current_date.day,hour_for_go_out,rnd(0,59),rnd(0,59));
+		
+		loop i from:0 to: nb_activities{ //Number of activities
+			activity_date <- activity_date + sum#hours;
+			agenda_day <+ (activity_date::"activity");
+			sum <- sum + hours_per_activity;
+		}
+		
+		activity_date <- activity_date + sum#hours;
 		agenda_day <+ (activity_date::"home");
 	}
 	
@@ -2206,12 +2238,12 @@ species people{// skills:[moving]{
 		try{
 			if after(agenda_day.keys[0]) {
 			  	string current_activity <-agenda_day.values[0];
-				target_point <- current_activity = "activity"?any_location_in(target_block):any_location_in(home_block);
+				target_block <- current_activity = "activity"?one_of(blocks):home_block;
 				agenda_day>>first(agenda_day);
 				//write ""+name+":"+"creating a car";
 				create car{																												//gama-issue14-may08->
 					target_block <- myself.target_block;
-					max_speed <- 160 #km / #h;
+					max_speed <- 40 #km / #h;
 					vehicle_length <- 4.0 #m;
 					right_side_driving <- true;
 					proba_lane_change_up <- 0.1 + (rnd(500) / 500);
@@ -2250,14 +2282,14 @@ species grid_paths{
 
 
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
-experiment CCU_1_1000 type:gui autorun:true{
+experiment "Run CityScope" type:gui autorun:false{       //Experiment at scale 1:1000 of the University Cultural District
 	output{
 		display my_display type:java2D {
 	        chart "my_chart" type: series {
 		        data "numberA" value: length(car) color: #red;
 	        }
    		 }
-		display gui type:opengl background:#black axes:false  fullscreen:1{
+		display gui type:opengl background:#black axes:false  fullscreen:0{
 			camera 'default' location: {1007.3931,681.2155,1270.1296} target: {1009.0202,671.3018,0.0};
 	
 			overlay size:{0,0} position:{0.1,0.1} transparency:0.5{
