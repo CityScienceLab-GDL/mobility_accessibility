@@ -36,7 +36,7 @@ global {
 		create road from: shape_file_roads with: [num_lanes::int(read("lanes")), oneway::string(read("oneway"))] {
 			num_lanes <- num_lanes<=0?1:num_lanes;
 			geom_display <- shape + (2.5 * num_lanes);
-			maxspeed <- (num_lanes = 1 ? 30.0 : (num_lanes = 2 ? 50.0 : 70.0)) °km / °h;
+			maxspeed <- (num_lanes = 1 ? 30.0 : (num_lanes = 2 ? 50.0 : 70.0)) #km / #h;
 			switch oneway {
 				match "no" {
 					create road {

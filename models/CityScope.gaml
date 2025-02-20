@@ -16,7 +16,7 @@
 
 model CityScope
 import "constants.gaml"
-import "Traffic_model.gaml"
+//import "Traffic_model.gaml"
 
 
 global skills:[network]{
@@ -91,6 +91,7 @@ global skills:[network]{
 	bool show_information <- false parameter:"Information" category:"Visualization";
 	
 	//Heatmap  variables
+	field indicators_heatmap <- field(20,20);	
 	string current_heatmap 		<- "";
 	bool show_heatmap 			<- false;
 	list<heatmap> ccu_heatmap;
@@ -381,13 +382,13 @@ global skills:[network]{
 		sports_facilities			<- equipment where(each.type="Deporte");
 		
 		list<people>valid_people;
-		list<car> valid_cars;
+		//list<car> valid_cars;
 		list<economic_unit> valid_unit;
 		ask ccu_limit{
 			ccu_heatmap 				<- heatmap inside(self+50);
 			ref_grid					<- base_grid inside(self +100);
 			valid_people <- people inside self;
-			valid_cars <- car inside self;
+			//valid_cars <- car inside self;
 			valid_unit <- economic_unit inside self;
 			current_active_households <- raw_current_active_households inside self;
 		}
@@ -409,7 +410,15 @@ global skills:[network]{
 		//write "hab/emp: "+hab_emp_ratio();
 		
 	}
-
+	
+	//reflex indicator_evolution {
+	action indicator_evolution {
+		//ask all cells to decrease their level of pollution
+		indicators_heatmap <- indicators_heatmap * 0.8;
+	
+		//diffuse the pollutions to neighbor cells
+		diffuse var: indicators on: indicators_heatmap proportion: 0.9;
+	}
 	reflex update_hab_emp when:scenario_changed and false{
 		write "hab/emp: "+hab_emp_ratio();
 		scenario_changed <- false;
@@ -500,7 +509,7 @@ global skills:[network]{
 	reflex incoming_people when:every(10#second){																															//gama-issue14-may10->
 		ask entry_point{
 			if flip(incoming_people_rate){
-				create car number:5{
+				/*create car number:5{
 					source_sc <- "incoming";																																				
 					target_block <- one_of(blocks);
 					max_speed <- 40 #km / #h;
@@ -518,7 +527,7 @@ global skills:[network]{
 					speed_coeff <- 1.2 - (rnd(400) / 1000);
 					threshold_stucked <- int((1 + rnd(5)) #mn);
 					proba_breakdown <- 0.00001;
-				}	
+				}	*/
 			}
 		}
 	}				
@@ -526,7 +535,7 @@ global skills:[network]{
 	reflex cultural_event_people when:telmex_event{
 		ask entry_point{
 			if flip(incoming_people_rate){
-				create car number:5{
+				/*create car number:5{
 					source_sc <- "cultural event";																																				
 					target_block <- one_of(blocks);
 					max_speed <- 40 #km / #h;
@@ -544,7 +553,7 @@ global skills:[network]{
 					speed_coeff <- 1.2 - (rnd(400) / 1000);
 					threshold_stucked <- int((1 + rnd(5)) #mn);
 					proba_breakdown <- 0.00001;
-				}	
+				}	*/
 			}
 		}
 	}																																														//<-gama-issue14-may10
@@ -616,6 +625,10 @@ global skills:[network]{
 			do activate_scenario(tmp_sc);
 		}
 		allow_export_current_data <- true;
+	}
+	
+	action activate_heatmap{
+		show_heatmap <- !show_heatmap;
 	}
 	//This reflex is to produce cars flows for the mobility simulation
 	/*reflex generate_car_flows when:sum(event_location collect(each.capacity - each.current_people))>0{
@@ -1195,6 +1208,7 @@ global skills:[network]{
 				float value <- mean(my_blocks collect(each.education_proximity));
 				ask heatmap inside(self){
 					grid_value <- value;
+					indicators_heatmap[self.location]<-grid_value*100;
 				}
 			}
 			//int scenario_index <- scenario = 1?0:1;
@@ -1260,6 +1274,7 @@ global skills:[network]{
 				float value <- mean(my_blocks collect(each.culture_proximity));
 				ask heatmap inside(self){
 					grid_value <- value;
+					indicators_heatmap[self.location]<-grid_value*100;
 				}
 			}
 			//int scenario_index <- scenario = 1?0:1;
@@ -1331,6 +1346,7 @@ global skills:[network]{
 			float value <- mean(my_blocks collect(each.health_proximity));
 			ask heatmap inside(self){
 				grid_value <- value;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1400,6 +1416,7 @@ global skills:[network]{
 			float value <- mean(my_blocks collect(each.sports_proximity));
 			ask heatmap inside(self){
 				grid_value <- value;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1453,6 +1470,7 @@ global skills:[network]{
 			float value <- mean(my_blocks collect(each.mobility_access));
 			ask heatmap inside(self){
 				grid_value <- value;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		/*ask ref_grid{
@@ -1481,6 +1499,7 @@ global skills:[network]{
 			do compute_diversity_day;
 			ask heatmap inside(self){
 				grid_value <- myself.day_diversity;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1493,6 +1512,7 @@ global skills:[network]{
 			do compute_diversity_night;
 			ask heatmap inside(self){
 				grid_value <- myself.night_diversity;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1505,6 +1525,7 @@ global skills:[network]{
 			do compute_diversity_night;
 			ask heatmap inside(self){
 				grid_value <- myself.knowledge_diversity;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1523,6 +1544,7 @@ global skills:[network]{
 		ask ref_grid{
 			ask heatmap inside(self){
 				grid_value <- myself.people_living_inside/max_population_living_in_grid;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1537,6 +1559,7 @@ global skills:[network]{
 		ask ref_grid{
 			ask heatmap inside(self){
 				grid_value <- myself.households_inside/max_households_in_grid;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1544,10 +1567,12 @@ global skills:[network]{
 	action heatmap2daydensity{
 		current_heatmap <- "day_density";
 		ask ccu_heatmap{grid_value <- 0.0;}
+		indicators_heatmap <- 0;
 		ask ref_grid{
 			do compute_density_day;
 			ask heatmap inside(self){
 				grid_value <- myself.day_density;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1559,6 +1584,7 @@ global skills:[network]{
 			do compute_density_night;
 			ask heatmap inside(self){
 				grid_value <- myself.night_density;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1570,6 +1596,7 @@ global skills:[network]{
 			do compute_density_knowledge;
 			ask heatmap inside(self){
 				grid_value <- myself.knowledge_density;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -1581,6 +1608,7 @@ global skills:[network]{
 			do compute_density_interaction;
 			ask heatmap inside(self){
 				grid_value <- myself.interaction_density;
+				indicators_heatmap[self.location]<-grid_value*100;
 			}
 		}
 		do spread_value(spread_value_factor);
@@ -2270,7 +2298,7 @@ species people{// skills:[moving]{
 				target_block <- current_activity = "activity"?one_of(blocks):home_block;
 				agenda_day>>first(agenda_day);
 				//write ""+name+":"+"creating a car";
-				create car{																												//gama-issue14-may08->
+				/*create car{																												//gama-issue14-may08->
 					source_sc <- "activities";
 					target_block <- myself.target_block;
 					max_speed <- 40 #km / #h;
@@ -2288,7 +2316,7 @@ species people{// skills:[moving]{
 					speed_coeff <- 1.2 - (rnd(400) / 1000);
 					threshold_stucked <- int((1 + rnd(5)) #mn);
 					proba_breakdown <- 0.00001;
-				}																															//<-gama-issue14-may08
+				}	*/																														//<-gama-issue14-may08
 		 	 }
 		}
 	 }	
@@ -2313,10 +2341,11 @@ species grid_paths{
 
 //--------------------------   EXPERIMENTS DEFINITION --------------------------------------
 experiment "Run CityScope" type:gui autorun:false{       //Experiment at scale 1:1000 of the University Cultural District
+	list<rgb> pal <- palette([ #black, #green, #yellow, #orange, #orange, #red, #red, #red]);
 	output{
 		display my_display type:java2D {
 	        chart "my_chart" type: series {
-		        data "numberA" value: length(car) color: #red;
+		        data "numberA" value: length(people) color: #red;
 	        }
    		 }
 		display gui type:opengl background:#black axes:false  fullscreen:0{
@@ -2333,38 +2362,39 @@ experiment "Run CityScope" type:gui autorun:false{       //Experiment at scale 1
 			species ccu_limit aspect:default refresh:true;
 			species blocks aspect:default;
 			species people aspect:default;
-			species car aspect:default; //gama-issue14-may05
-			species heatmap aspect:heat;
+			//species car aspect:default; //gama-issue14-may05
+			//species heatmap aspect:heat;
+			mesh indicators_heatmap scale: 9 triangulation: true transparency: 0.4 smooth: 3 above: 0.8 color: pal;
 			species intervention_area aspect:default;
 			
 			//Keyboard events
-			event "h" {show_heatmap <- !show_heatmap;} //Heatmap display
-			event "s" action:heatmap2health;
-			event "e" action:heatmap2education;
-			event "c" action:heatmap2culture;
-			event "x" action:heatmap2sports;
-			event "d" action:heatmap2daydiv;
-			event "n" action:heatmap2nightdiv;
-			event "w" action:heatmap2knowdiv;
+			event 'h' {ask simulation{do activate_heatmap;}} //Heatmap display
+			event 's' {ask simulation{do heatmap2health;}}
+			event 'e' {ask simulation{do heatmap2education;}}
+			event 'c' {ask simulation{do heatmap2culture;}}
+			event 'x' {ask simulation{do heatmap2sports;}}
+			event 'd' {ask simulation{do heatmap2daydiv;}}
+			event 'n' {ask simulation{do heatmap2nightdiv;}}
+			event 'w' {ask simulation{do heatmap2knowdiv;}}
 			
-			event "u" action:heatmap2daydensity;
-			event "i" action:heatmap2nightdensity;
-			event "o" action:heatmap2knowledgedensity;
-			event "p" action:heatmap2interactiondensity;
-			event "l" action:heatmap2populationdensity;
-			event "L" action:heatmap2householddensity;
+			event 'u' {ask simulation{do heatmap2daydensity;}}
+			event 'i' {ask simulation{do heatmap2nightdensity;}}
+			event 'o' {ask simulation{do heatmap2knowledgedensity;}}
+			event 'p' {ask simulation{do heatmap2interactiondensity;}}
+			event 'l' {ask simulation{do heatmap2populationdensity;}}
+			event 'L' {ask simulation{do heatmap2householddensity;}}
 			
-			event "m" action:heatmap2mobility;
-			event "q" action:show_satellite_action;
-			event "t" action:activate_scenario1;
-			event "y" action:activate_scenario2;
+			event 'm' {ask simulation{do heatmap2mobility;}}
+			event 'q' {ask simulation{do action:show_satellite_action;}}
+			event 't' {ask simulation{do activate_scenario1;}}
+			event 'y' {ask simulation{do activate_scenario2;}}
 			
 			//Events to change scenario
-			event "A" action:change_scenario_A;
-			event "B" action:change_scenario_B;
-			event "F" action:change_scenario_K;
-			event "I" action:change_scenario_I;
-			event "L" action:change_scenario_L;
+			event 'A' {ask simulation{do change_scenario_A;}}
+			event 'B' {ask simulation{do change_scenario_B;}}
+			event 'F' {ask simulation{do change_scenario_K;}}
+			event 'I' {ask simulation{do change_scenario_I;}}
+			event 'L' {ask simulation{do change_scenario_L;}}
 		}
 	}
 }
